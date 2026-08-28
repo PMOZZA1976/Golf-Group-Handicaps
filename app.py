@@ -345,28 +345,16 @@ st.markdown(
 # =========================================================
 
 st.markdown(
-    """
-    <div class="golf-hero">
-
-        <div class="golf-hero-top">
-            ⛳ THE GROUP
-        </div>
-
-        <div class="golf-hero-title">
-            Golf Handicaps
-        </div>
-
-        <div class="golf-hero-subtitle">
-            Track rounds, compare performances and build
-            an unofficial WHS-based Handicap Index.
-        </div>
-
-        <div class="golf-hero-pill">
-            GROSS SCORE → ROUND RATING → HANDICAP INDEX
-        </div>
-
-    </div>
-    """,
+"""<div class="golf-hero">
+<div class="golf-hero-top">⛳ THE GROUP</div>
+<div class="golf-hero-title">Golf Handicaps</div>
+<div class="golf-hero-subtitle">
+Track rounds, compare performances and build an unofficial WHS-based Handicap Index.
+</div>
+<div class="golf-hero-pill">
+GROSS SCORE → ROUND RATING → HANDICAP INDEX
+</div>
+</div>""",
     unsafe_allow_html=True
 )
 
