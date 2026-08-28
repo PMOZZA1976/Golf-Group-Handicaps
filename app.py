@@ -10,9 +10,8 @@ st.set_page_config(
 st.title("⛳ Golf Group Handicaps")
 st.caption("Unofficial handicap tracker using WHS calculation rules")
 
-
 # ---------------------------------
-# Session storage for testing
+# Session storage
 # ---------------------------------
 if "rounds" not in st.session_state:
     st.session_state.rounds = []
@@ -49,15 +48,35 @@ with st.form("add_round_form"):
         value=date.today()
     )
 
+    holes_played = st.radio(
+        "Number of holes played",
+        options=[18, 9],
+        horizontal=True
+    )
+
     golf_course = st.text_input(
         "Golf course",
         placeholder="e.g. Brocton Hall Golf Club"
     )
 
-    course_layout = st.text_input(
-        "Course / Layout",
-        placeholder="e.g. Main Course"
-    )
+    # Temporary Stage 2 setup.
+    # In Stage 3 this will come automatically from the golf-course API.
+    available_layouts = ["Main Course"]
+
+    if len(available_layouts) == 1:
+
+        course_layout = st.selectbox(
+            "Course / Layout",
+            options=available_layouts,
+            disabled=True
+        )
+
+    else:
+
+        course_layout = st.selectbox(
+            "Course / Layout",
+            options=available_layouts
+        )
 
     tees_used = st.selectbox(
         "Tees used",
@@ -76,9 +95,9 @@ with st.form("add_round_form"):
 
     course_rating = st.number_input(
         "Course Rating",
-        min_value=50.0,
+        min_value=25.0,
         max_value=90.0,
-        value=70.0,
+        value=70.0 if holes_played == 18 else 35.0,
         step=0.1,
         format="%.1f"
     )
@@ -93,17 +112,17 @@ with st.form("add_round_form"):
 
     par = st.number_input(
         "Par",
-        min_value=54,
+        min_value=25,
         max_value=80,
-        value=72,
+        value=72 if holes_played == 18 else 36,
         step=1
     )
 
     adjusted_gross_score = st.number_input(
         "Adjusted Gross Score",
-        min_value=40,
+        min_value=20,
         max_value=200,
-        value=90,
+        value=90 if holes_played == 18 else 45,
         step=1
     )
 
@@ -130,9 +149,11 @@ with st.form("add_round_form"):
 if save_round:
 
     if not player.strip():
+
         st.error("Please enter the player's name.")
 
     elif not golf_course.strip():
+
         st.error("Please enter the golf course.")
 
     else:
@@ -140,8 +161,9 @@ if save_round:
         round_record = {
             "Player": player.strip(),
             "Date": date_played,
+            "Holes": holes_played,
             "Golf Course": golf_course.strip(),
-            "Course / Layout": course_layout.strip(),
+            "Course / Layout": course_layout,
             "Tees": tees_used,
             "Course Rating": course_rating,
             "Slope Rating": slope_rating,
@@ -154,6 +176,7 @@ if save_round:
 
         st.success(
             f"Round saved for {player.strip()} — "
+            f"{holes_played} holes — "
             f"Score Differential {differential:.1f}"
         )
 
@@ -162,7 +185,6 @@ if save_round:
 # Recent rounds
 # ---------------------------------
 st.divider()
-
 st.subheader("Recent Rounds")
 
 if not st.session_state.rounds:
@@ -171,15 +193,15 @@ if not st.session_state.rounds:
 
 else:
 
-    for round_record in reversed(
-        st.session_state.rounds
-    ):
+    for round_record in reversed(st.session_state.rounds):
 
         st.markdown(
             f"""
             **{round_record['Player']}**  
             {round_record['Golf Course']}  
-            {round_record['Tees']} tees  
+            {round_record['Course / Layout']} •
+            {round_record['Tees']} tees •
+            {round_record['Holes']} holes  
             Score: **{round_record['Adjusted Gross Score']}**  
             Differential: **{round_record['Score Differential']:.1f}**
             """
