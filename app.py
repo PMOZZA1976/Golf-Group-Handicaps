@@ -104,10 +104,10 @@ p, label {
     border-radius: 0 0 28px 28px;
 
     padding:
-        30px 24px 29px 24px;
+        35px 24px 30px 24px;
 
     margin:
-        -0.8rem -1rem 1.9rem -1rem;
+        0.8rem -1rem 1.9rem -1rem;
 
     box-shadow:
         0 16px 34px rgba(10,43,34,0.19);
@@ -139,7 +139,7 @@ p, label {
 
     font-size: 2.55rem;
 
-    line-height: 1.02;
+    line-height: 1.15;
 
     font-weight: 700;
 
