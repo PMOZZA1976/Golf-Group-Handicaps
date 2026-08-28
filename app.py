@@ -55,17 +55,26 @@ PLAYERS = [
 if "rounds" not in st.session_state:
     st.session_state.rounds = []
 
-if "course_results" not in st.session_state:
-    st.session_state.course_results = []
-
-if "selected_course_data" not in st.session_state:
-    st.session_state.selected_course_data = None
-
 if "selected_player_entry" not in st.session_state:
     st.session_state.selected_player_entry = None
 
 if "player_menu_open" not in st.session_state:
     st.session_state.player_menu_open = False
+
+if "selected_course_id" not in st.session_state:
+    st.session_state.selected_course_id = None
+
+if "selected_course_label" not in st.session_state:
+    st.session_state.selected_course_label = None
+
+if "selected_course_short_label" not in st.session_state:
+    st.session_state.selected_course_short_label = None
+
+if "selected_course_data" not in st.session_state:
+    st.session_state.selected_course_data = None
+
+if "course_menu_open" not in st.session_state:
+    st.session_state.course_menu_open = False
 
 
 # =========================================================
@@ -154,8 +163,6 @@ def estimated_expected_nine(
 ):
 
     # Unofficial approximation only.
-    # The authorised WHS system performs the
-    # official expected-score calculation.
 
     return (
         float(handicap_index) / 2
@@ -189,7 +196,7 @@ def calculate_9_hole_round_rating(
 
 
 # =========================================================
-# HANDICAP INDEX CALCULATION
+# HANDICAP INDEX
 # =========================================================
 
 def handicap_calculation(
@@ -219,50 +226,39 @@ def handicap_calculation(
     adjustment = 0.0
 
     if count == 3:
-
         number_used = 1
         adjustment = -2.0
 
     elif count == 4:
-
         number_used = 1
         adjustment = -1.0
 
     elif count == 5:
-
         number_used = 1
 
     elif count == 6:
-
         number_used = 2
         adjustment = -1.0
 
     elif count in [7, 8]:
-
         number_used = 2
 
     elif 9 <= count <= 11:
-
         number_used = 3
 
     elif 12 <= count <= 14:
-
         number_used = 4
 
     elif 15 <= count <= 16:
-
         number_used = 5
 
     elif 17 <= count <= 18:
-
         number_used = 6
 
     elif count == 19:
-
         number_used = 7
 
     else:
-
         number_used = 8
 
     counting = (
@@ -403,7 +399,6 @@ def get_player_handicap(
     if len(
         completed_differentials
     ) < 3:
-
         return None
 
     handicap_index, _, _ = (
@@ -460,7 +455,7 @@ def handicap_strokes_on_hole(
 
 
 # =========================================================
-# COURSE DATA HELPERS
+# COURSE HELPERS
 # =========================================================
 
 def get_hole_number(
@@ -598,6 +593,79 @@ def get_9_hole_values(
     )
 
 
+def build_course_labels(
+    course
+):
+
+    club = course.get(
+        "club_name",
+        ""
+    )
+
+    course_name = course.get(
+        "course_name",
+        ""
+    )
+
+    location = course.get(
+        "location",
+        {}
+    )
+
+    city = location.get(
+        "city",
+        ""
+    )
+
+    country = location.get(
+        "country",
+        ""
+    )
+
+    if (
+        course_name
+        and course_name != club
+    ):
+
+        short_label = (
+            f"{club} – {course_name}"
+        )
+
+    else:
+
+        short_label = (
+            club
+            or course_name
+        )
+
+    location_text = ", ".join(
+        item
+        for item in [
+            city,
+            country
+        ]
+        if item
+    )
+
+    if location_text:
+
+        full_label = (
+            f"{short_label} "
+            f"({location_text})"
+        )
+
+    else:
+
+        full_label = (
+            short_label
+        )
+
+    return (
+        short_label,
+        full_label
+    )
+
+
 # =========================================================
 # INFORMATION BOXES
 # =========================================================
@@ -723,14 +791,14 @@ player_button_text = (
     else "Select player"
 )
 
-arrow = (
+player_arrow = (
     "▲"
     if st.session_state.player_menu_open
     else "▼"
 )
 
 if st.button(
-    f"{player_button_text}  {arrow}",
+    f"{player_button_text}  {player_arrow}",
     use_container_width=True,
     key="open_player_menu"
 ):
@@ -758,10 +826,7 @@ if st.session_state.player_menu_open:
         if st.button(
             f"{player_name}{selected_marker}",
             use_container_width=True,
-            key=(
-                f"choose_player_"
-                f"{player_name}"
-            )
+            key=f"choose_player_{player_name}"
         ):
 
             st.session_state.selected_player_entry = (
@@ -798,7 +863,7 @@ holes_played = st.radio(
 
 
 # =========================================================
-# TOP PLAYER HANDICAP PROGRESS
+# PLAYER HANDICAP PROGRESS
 # =========================================================
 
 if player is not None:
@@ -831,257 +896,263 @@ if player is not None:
 
 
 # =========================================================
-# AUTOMATIC COURSE SEARCH
+# GOLF COURSE SELECTOR
 # =========================================================
 
 st.markdown(
     "### Golf Course"
 )
 
-course_search = st.text_input(
-    "Golf course",
-    placeholder=(
-        "Start typing, e.g. Brocton Hall"
+course_button_text = (
+    st.session_state.selected_course_short_label
+    if st.session_state.selected_course_short_label
+    else "Select golf course"
+)
+
+course_arrow = (
+    "▲"
+    if st.session_state.course_menu_open
+    else "▼"
+)
+
+if st.button(
+    f"{course_button_text}  {course_arrow}",
+    use_container_width=True,
+    key="open_course_menu"
+):
+
+    st.session_state.course_menu_open = (
+        not st.session_state.course_menu_open
     )
-)
 
-clean_search = (
-    course_search.strip()
-)
+    st.rerun()
 
-if len(
-    clean_search
-) >= 3:
 
-    try:
+# =========================================================
+# COURSE SEARCH
+# =========================================================
 
-        with st.spinner(
-            "Finding matching courses..."
-        ):
+if st.session_state.course_menu_open:
 
-            search_results = (
-                search_courses(
-                    clean_search
-                )
-            )
+    course_search = st.text_input(
+        "Search golf course",
+        placeholder=(
+            "Start typing, e.g. Brocton Hall"
+        ),
+        key="course_search_input"
+    )
 
-        st.session_state.course_results = (
-            search_results
-        )
+    clean_search = (
+        course_search.strip()
+    )
 
-        if not search_results:
-
-            st.session_state.selected_course_data = (
-                None
-            )
-
-            st.info(
-                "No matching golf courses found."
-            )
-
-    except requests.exceptions.RequestException as error:
-
-        st.session_state.course_results = []
-
-        st.session_state.selected_course_data = (
-            None
-        )
-
-        st.error(
-            "Unable to search the golf course database."
-        )
+    if len(clean_search) < 3:
 
         st.caption(
-            str(error)
+            "Type at least 3 letters."
         )
 
-else:
+    else:
 
-    st.session_state.course_results = []
+        try:
 
-    st.session_state.selected_course_data = (
-        None
-    )
+            with st.spinner(
+                "Finding matching courses..."
+            ):
 
+                search_results = (
+                    search_courses(
+                        clean_search
+                    )
+                )
 
-# =========================================================
-# MATCHING COURSES
-# =========================================================
+            if not search_results:
 
-course_id = None
+                st.info(
+                    "No matching golf courses found."
+                )
 
-if st.session_state.course_results:
+            else:
 
-    course_labels = []
+                st.caption(
+                    "Tap the correct course:"
+                )
 
-    for course in st.session_state.course_results:
+                for result in search_results:
 
-        club = course.get(
-            "club_name",
-            ""
-        )
+                    (
+                        short_label,
+                        full_label
+                    ) = build_course_labels(
+                        result
+                    )
 
-        result_course_name = course.get(
-            "course_name",
-            ""
-        )
-
-        location = course.get(
-            "location",
-            {}
-        )
-
-        city = location.get(
-            "city",
-            ""
-        )
-
-        country = location.get(
-            "country",
-            ""
-        )
-
-        if (
-            result_course_name
-            and result_course_name != club
-        ):
-
-            display_name = (
-                f"{club} – "
-                f"{result_course_name}"
-            )
-
-        else:
-
-            display_name = (
-                club
-                or result_course_name
-            )
-
-        location_text = ", ".join(
-            item
-            for item in [
-                city,
-                country
-            ]
-            if item
-        )
-
-        if location_text:
-
-            display_name = (
-                f"{display_name} "
-                f"({location_text})"
-            )
-
-        course_labels.append(
-            display_name
-        )
-
-
-    selected_course_label = (
-        st.selectbox(
-            "Matching courses",
-            course_labels,
-            index=None,
-            placeholder=(
-                "Select the correct course"
-            )
-        )
-    )
-
-
-    if selected_course_label is not None:
-
-        selected_course_index = (
-            course_labels.index(
-                selected_course_label
-            )
-        )
-
-        selected_course_summary = (
-            st.session_state.course_results[
-                selected_course_index
-            ]
-        )
-
-        course_id = (
-            selected_course_summary.get(
-                "id"
-            )
-        )
-
-        if course_id:
-
-            try:
-
-                with st.spinner(
-                    "Loading course details..."
-                ):
-
-                    loaded_course_data = (
-                        get_course_details(
-                            course_id
+                    result_id = (
+                        result.get(
+                            "id"
                         )
                     )
 
-                st.session_state.selected_course_data = (
-                    loaded_course_data
-                )
+                    if result_id:
 
-            except requests.exceptions.RequestException:
+                        if st.button(
+                            full_label,
+                            use_container_width=True,
+                            key=(
+                                f"course_result_"
+                                f"{result_id}"
+                            )
+                        ):
 
-                st.session_state.selected_course_data = (
-                    None
-                )
+                            try:
 
-                st.error(
-                    "Unable to load course details."
-                )
+                                with st.spinner(
+                                    "Loading course..."
+                                ):
+
+                                    loaded_course_data = (
+                                        get_course_details(
+                                            result_id
+                                        )
+                                    )
+
+                                st.session_state.selected_course_id = (
+                                    result_id
+                                )
+
+                                st.session_state.selected_course_label = (
+                                    full_label
+                                )
+
+                                st.session_state.selected_course_short_label = (
+                                    short_label
+                                )
+
+                                st.session_state.selected_course_data = (
+                                    loaded_course_data
+                                )
+
+                                st.session_state.course_menu_open = (
+                                    False
+                                )
+
+                                st.rerun()
+
+                            except requests.exceptions.RequestException:
+
+                                st.error(
+                                    "Unable to load "
+                                    "course details."
+                                )
+
+        except requests.exceptions.RequestException as error:
+
+            st.error(
+                "Unable to search the "
+                "golf course database."
+            )
+
+            st.caption(
+                str(error)
+            )
 
 
 # =========================================================
-# COURSE DETAILS
+# SELECTED COURSE DATA
 # =========================================================
 
 course_data = (
     st.session_state.selected_course_data
 )
 
+course_id = (
+    st.session_state.selected_course_id
+)
+
 if course_data:
 
-    club_name = course_data.get(
-        "club_name",
-        ""
+    club_name = (
+        course_data.get(
+            "club_name",
+            ""
+        )
     )
 
-    course_name = course_data.get(
-        "course_name",
-        ""
+    course_name = (
+        course_data.get(
+            "course_name",
+            ""
+        )
     )
 
-    course_layout = st.selectbox(
-        "Course / Layout",
-        [
+
+    # =====================================================
+    # COURSE / LAYOUT
+    # =====================================================
+
+    layouts = (
+        course_data.get(
+            "courses"
+        )
+        or course_data.get(
+            "layouts"
+        )
+        or []
+    )
+
+    if len(layouts) > 1:
+
+        layout_names = []
+
+        for layout in layouts:
+
+            layout_name = (
+                layout.get(
+                    "course_name"
+                )
+                or layout.get(
+                    "name"
+                )
+                or layout.get(
+                    "layout_name"
+                )
+                or "Course"
+            )
+
+            layout_names.append(
+                layout_name
+            )
+
+        course_layout = st.selectbox(
+            "Course / Layout",
+            layout_names
+        )
+
+    else:
+
+        course_layout = (
             course_name
+            or club_name
             or "Main Course"
-        ],
-        disabled=True
-    )
+        )
 
 
     # =====================================================
     # TEES
     # =====================================================
 
-    tees = course_data.get(
-        "tees",
-        {}
+    tees = (
+        course_data.get(
+            "tees",
+            {}
+        )
     )
 
-    male_tees = tees.get(
-        "male",
-        []
+    male_tees = (
+        tees.get(
+            "male",
+            []
+        )
     )
 
     if not male_tees:
@@ -1101,18 +1172,24 @@ if course_data:
             for tee in male_tees
         ]
 
-        selected_tee_name = st.selectbox(
-            "Tees used",
-            tee_names
+        selected_tee_name = (
+            st.selectbox(
+                "Tees used",
+                tee_names
+            )
         )
 
-        tee_index = tee_names.index(
-            selected_tee_name
+        tee_index = (
+            tee_names.index(
+                selected_tee_name
+            )
         )
 
-        selected_tee = male_tees[
-            tee_index
-        ]
+        selected_tee = (
+            male_tees[
+                tee_index
+            ]
+        )
 
         full_course_rating = (
             selected_tee.get(
@@ -1222,7 +1299,7 @@ if course_data:
 
 
         # =================================================
-        # CHECK RATING DATA
+        # VALIDATE COURSE DATA
         # =================================================
 
         if (
@@ -1251,7 +1328,6 @@ if course_data:
                     "Course Rating or Slope Rating "
                     "is unavailable for these tees."
                 )
-
 
         else:
 
@@ -1323,10 +1399,6 @@ if course_data:
                 expected_nine = None
 
 
-                # =========================================
-                # CALCULATE RATING
-                # =========================================
-
                 if holes_played == 18:
 
                     round_rating = (
@@ -1361,7 +1433,7 @@ if course_data:
 
 
                 # =========================================
-                # RATING DISPLAY
+                # ROUND RATING
                 # =========================================
 
                 if round_rating is not None:
@@ -1409,7 +1481,7 @@ may differ slightly.
 
 
                 # =========================================
-                # SAVE TOTAL SCORE ROUND
+                # SAVE TOTAL ROUND
                 # =========================================
 
                 if st.button(
@@ -1428,58 +1500,28 @@ may differ slightly.
 
                         st.session_state.rounds.append(
                             {
-                                "Player":
-                                    player,
-
-                                "Date":
-                                    date_played,
-
-                                "Holes":
-                                    holes_played,
-
-                                "Nine":
-                                    nine_choice,
-
-                                "Golf Course":
-                                    club_name,
-
-                                "Course / Layout":
-                                    course_layout,
-
-                                "Tees":
-                                    selected_tee_name,
-
-                                "Course Rating":
-                                    course_rating,
-
-                                "Slope Rating":
-                                    slope_rating,
-
-                                "Par":
-                                    course_par,
-
-                                "Gross Score":
-                                    handicap_score,
-
-                                "Adjusted Score":
-                                    handicap_score,
-
-                                "Differential":
-                                    (
-                                        round(
-                                            round_rating,
-                                            1
-                                        )
-                                        if round_rating
-                                        is not None
-                                        else None
-                                    ),
-
-                                "Entry Method":
-                                    "Total",
-
-                                "Expected Nine":
-                                    expected_nine
+                                "Player": player,
+                                "Date": date_played,
+                                "Holes": holes_played,
+                                "Nine": nine_choice,
+                                "Golf Course": club_name,
+                                "Course / Layout": course_layout,
+                                "Tees": selected_tee_name,
+                                "Course Rating": course_rating,
+                                "Slope Rating": slope_rating,
+                                "Par": course_par,
+                                "Gross Score": handicap_score,
+                                "Adjusted Score": handicap_score,
+                                "Differential": (
+                                    round(
+                                        round_rating,
+                                        1
+                                    )
+                                    if round_rating is not None
+                                    else None
+                                ),
+                                "Entry Method": "Total",
+                                "Expected Nine": expected_nine
                             }
                         )
 
@@ -1521,10 +1563,6 @@ may differ slightly.
                     )
 
 
-                # =========================================
-                # CHECK HOLE DATA
-                # =========================================
-
                 if (
                     len(
                         holes_for_round
@@ -1542,7 +1580,6 @@ may differ slightly.
                         "Please choose "
                         "**Total gross score** instead."
                     )
-
 
                 else:
 
@@ -1599,30 +1636,23 @@ may differ slightly.
                             i + 1
                             if (
                                 holes_played == 18
-                                or nine_choice
-                                == "Front 9"
+                                or nine_choice == "Front 9"
                             )
                             else i + 10
                         )
 
-                        hole_number = (
-                            get_hole_number(
-                                hole,
-                                fallback_hole
-                            )
+                        hole_number = get_hole_number(
+                            hole,
+                            fallback_hole
                         )
 
-                        hole_par = (
-                            get_hole_par(
-                                hole
-                            )
+                        hole_par = get_hole_par(
+                            hole
                         )
 
-                        stroke_index = (
-                            get_stroke_index(
-                                hole,
-                                fallback_hole
-                            )
+                        stroke_index = get_stroke_index(
+                            hole,
+                            fallback_hole
                         )
 
                         if hole_par is None:
@@ -1630,7 +1660,7 @@ may differ slightly.
 
 
                         # =================================
-                        # MAXIMUM SCORE FOR HANDICAP
+                        # MAXIMUM HOLE SCORE
                         # =================================
 
                         if (
@@ -1662,10 +1692,6 @@ may differ slightly.
                                 + strokes_received
                             )
 
-
-                        # =================================
-                        # SCORE INPUT
-                        # =================================
 
                         hole_info_col, score_col = (
                             st.columns(
@@ -1737,7 +1763,7 @@ may differ slightly.
 
 
                     # =====================================
-                    # ROUND TOTALS
+                    # TOTALS
                     # =====================================
 
                     gross_score = sum(
@@ -1786,7 +1812,7 @@ may differ slightly.
 
 
                     # =====================================
-                    # ROUND SUMMARY
+                    # SUMMARY
                     # =====================================
 
                     st.markdown(
@@ -1868,61 +1894,29 @@ may differ slightly.
 
                             st.session_state.rounds.append(
                                 {
-                                    "Player":
-                                        player,
-
-                                    "Date":
-                                        date_played,
-
-                                    "Holes":
-                                        holes_played,
-
-                                    "Nine":
-                                        nine_choice,
-
-                                    "Golf Course":
-                                        club_name,
-
-                                    "Course / Layout":
-                                        course_layout,
-
-                                    "Tees":
-                                        selected_tee_name,
-
-                                    "Course Rating":
-                                        course_rating,
-
-                                    "Slope Rating":
-                                        slope_rating,
-
-                                    "Par":
-                                        course_par,
-
-                                    "Gross Score":
-                                        gross_score,
-
-                                    "Adjusted Score":
-                                        adjusted_score,
-
-                                    "Differential":
-                                        (
-                                            round(
-                                                round_rating,
-                                                1
-                                            )
-                                            if round_rating
-                                            is not None
-                                            else None
-                                        ),
-
-                                    "Entry Method":
-                                        "Hole-by-hole",
-
-                                    "Hole Scores":
-                                        raw_scores,
-
-                                    "Expected Nine":
-                                        expected_nine
+                                    "Player": player,
+                                    "Date": date_played,
+                                    "Holes": holes_played,
+                                    "Nine": nine_choice,
+                                    "Golf Course": club_name,
+                                    "Course / Layout": course_layout,
+                                    "Tees": selected_tee_name,
+                                    "Course Rating": course_rating,
+                                    "Slope Rating": slope_rating,
+                                    "Par": course_par,
+                                    "Gross Score": gross_score,
+                                    "Adjusted Score": adjusted_score,
+                                    "Differential": (
+                                        round(
+                                            round_rating,
+                                            1
+                                        )
+                                        if round_rating is not None
+                                        else None
+                                    ),
+                                    "Entry Method": "Hole-by-hole",
+                                    "Hole Scores": raw_scores,
+                                    "Expected Nine": expected_nine
                                 }
                             )
 
@@ -1962,11 +1956,6 @@ else:
         in rounds_df["Player"].unique()
     ]
 
-
-    # =====================================================
-    # VIEW PLAYER
-    # =====================================================
-
     record_player = st.selectbox(
         "View player",
         players_with_scores
@@ -1985,9 +1974,6 @@ else:
         )
     )
 
-
-    # IMPORTANT:
-    # Separate variable from the top progress section.
     record_completed_holes = int(
         player_record_df[
             "Holes"
@@ -2019,7 +2005,6 @@ else:
 
         show_54_hole_info()
 
-
     else:
 
         record_differentials = [
@@ -2039,7 +2024,6 @@ else:
         ) = handicap_calculation(
             record_differentials
         )
-
 
         if record_handicap_index is None:
 
