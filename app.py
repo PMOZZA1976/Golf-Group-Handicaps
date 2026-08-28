@@ -793,7 +793,7 @@ if player is not None:
 )
 
 st.write(
-    f"**{shown_holes} of 54 completed holes**"
+    f"**{completed_holes} of 54 completed holes**"
 )
 
 st.progress(
