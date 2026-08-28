@@ -22,11 +22,21 @@ st.caption("Unofficial handicap tracker using WHS calculation rules")
 # CONFIG
 # =========================================================
 
-API_BASE = "https://api.golfcourseapi.com/v1"
-API_KEY = st.secrets["GOLF_API_KEY"]
+GOLF_API_BASE = "https://api.golfcourseapi.com/v1"
+GOLF_API_KEY = st.secrets["GOLF_API_KEY"]
 
-HEADERS = {
-    "Authorization": f"Bearer {API_KEY}"
+SUPABASE_URL = st.secrets["SUPABASE_URL"]
+SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
+
+GOLF_HEADERS = {
+    "Authorization": f"Bearer {GOLF_API_KEY}"
+}
+
+# IMPORTANT:
+# New Supabase sb_secret_ keys go in the apikey header.
+SUPABASE_HEADERS = {
+    "apikey": SUPABASE_KEY,
+    "Content-Type": "application/json"
 }
 
 PLAYERS = [
@@ -50,10 +60,9 @@ PLAYERS = [
 
 # =========================================================
 # SESSION STATE
+# Only UI choices are stored here.
+# Scores are stored permanently in Supabase.
 # =========================================================
-
-if "rounds" not in st.session_state:
-    st.session_state.rounds = []
 
 if "selected_player_entry" not in st.session_state:
     st.session_state.selected_player_entry = None
@@ -78,6 +87,155 @@ if "course_menu_open" not in st.session_state:
 
 
 # =========================================================
+# SUPABASE DATABASE
+# =========================================================
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def load_players_from_database():
+
+    response = requests.get(
+        f"{SUPABASE_URL}/rest/v1/players",
+        headers=SUPABASE_HEADERS,
+        params={
+            "select": "id,name",
+            "order": "name.asc"
+        },
+        timeout=15
+    )
+
+    response.raise_for_status()
+
+    return response.json()
+
+
+@st.cache_data(ttl=10, show_spinner=False)
+def load_rounds_from_database():
+
+    response = requests.get(
+        f"{SUPABASE_URL}/rest/v1/rounds",
+        headers=SUPABASE_HEADERS,
+        params={
+            "select": "*",
+            "order": "date_played.asc,created_at.asc"
+        },
+        timeout=15
+    )
+
+    response.raise_for_status()
+
+    return response.json()
+
+
+def save_round_to_database(round_data):
+
+    response = requests.post(
+        f"{SUPABASE_URL}/rest/v1/rounds",
+        headers={
+            **SUPABASE_HEADERS,
+            "Prefer": "return=minimal"
+        },
+        json=round_data,
+        timeout=15
+    )
+
+    response.raise_for_status()
+
+
+# =========================================================
+# LOAD DATABASE DATA
+# =========================================================
+
+try:
+
+    database_players = load_players_from_database()
+
+except requests.exceptions.RequestException as error:
+
+    st.error(
+        "Unable to connect to the player database."
+    )
+
+    st.caption(str(error))
+
+    st.stop()
+
+
+PLAYER_ID_BY_NAME = {
+    row["name"]: row["id"]
+    for row in database_players
+}
+
+PLAYER_NAME_BY_ID = {
+    row["id"]: row["name"]
+    for row in database_players
+}
+
+
+try:
+
+    database_rounds = load_rounds_from_database()
+
+except requests.exceptions.RequestException as error:
+
+    st.error(
+        "Unable to load scores from the database."
+    )
+
+    st.caption(str(error))
+
+    st.stop()
+
+
+# =========================================================
+# CONVERT DATABASE ROUNDS TO APP FORMAT
+# =========================================================
+
+all_rounds = []
+
+for row in database_rounds:
+
+    player_name = PLAYER_NAME_BY_ID.get(
+        row.get("player_id")
+    )
+
+    if player_name is None:
+        continue
+
+    date_value = row.get("date_played")
+
+    try:
+        date_value = pd.to_datetime(
+            date_value
+        ).date()
+    except Exception:
+        pass
+
+    all_rounds.append(
+        {
+            "ID": row.get("id"),
+            "Player": player_name,
+            "Date": date_value,
+            "Holes": row.get("holes"),
+            "Nine": row.get("nine"),
+            "Golf Course": row.get("golf_course"),
+            "Course / Layout": row.get("course_layout"),
+            "Course API ID": row.get("course_api_id"),
+            "Tees": row.get("tees"),
+            "Course Rating": row.get("course_rating"),
+            "Slope Rating": row.get("slope_rating"),
+            "Par": row.get("par"),
+            "Gross Score": row.get("gross_score"),
+            "Adjusted Score": row.get("adjusted_score"),
+            "Differential": row.get("round_rating"),
+            "Entry Method": row.get("entry_method"),
+            "Hole Scores": row.get("hole_scores"),
+            "Expected Nine": row.get("expected_nine"),
+            "Created At": row.get("created_at")
+        }
+    )
+
+
+# =========================================================
 # COURSE API
 # =========================================================
 
@@ -88,8 +246,8 @@ if "course_menu_open" not in st.session_state:
 def search_courses(search_text):
 
     response = requests.get(
-        f"{API_BASE}/search",
-        headers=HEADERS,
+        f"{GOLF_API_BASE}/search",
+        headers=GOLF_HEADERS,
         params={
             "search_query": search_text
         },
@@ -111,8 +269,8 @@ def search_courses(search_text):
 def get_course_details(course_id):
 
     response = requests.get(
-        f"{API_BASE}/courses/{course_id}",
-        headers=HEADERS,
+        f"{GOLF_API_BASE}/courses/{course_id}",
+        headers=GOLF_HEADERS,
         timeout=15
     )
 
@@ -162,8 +320,7 @@ def estimated_expected_nine(
     handicap_index
 ):
 
-    # Unofficial approximation only.
-
+    # Unofficial approximation.
     return (
         float(handicap_index) / 2
     ) + 1.5
@@ -203,14 +360,21 @@ def handicap_calculation(
     differentials
 ):
 
+    clean_differentials = [
+        float(value)
+        for value in differentials
+        if value is not None
+        and pd.notna(value)
+    ]
+
     count = len(
-        differentials
+        clean_differentials
     )
 
     if count < 3:
         return None, [], ""
 
-    recent = differentials[-20:]
+    recent = clean_differentials[-20:]
 
     indexed = list(
         enumerate(
@@ -336,7 +500,7 @@ def get_player_rounds(
 
     results = [
         r
-        for r in st.session_state.rounds
+        for r in all_rounds
         if r.get("Player") == player_name
     ]
 
@@ -360,6 +524,7 @@ def get_completed_holes(
                 "Holes",
                 0
             )
+            or 0
         )
         for r in player_rounds
     )
@@ -379,6 +544,7 @@ def get_player_handicap(
                 "Holes",
                 0
             )
+            or 0
         )
         for r in player_rounds
     )
@@ -610,7 +776,7 @@ def build_course_labels(
     location = course.get(
         "location",
         {}
-    )
+    ) or {}
 
     city = location.get(
         "city",
@@ -636,6 +802,7 @@ def build_course_labels(
         short_label = (
             club
             or course_name
+            or "Unnamed course"
         )
 
     location_text = ", ".join(
@@ -978,7 +1145,7 @@ if st.session_state.course_menu_open:
                     "Tap the correct course:"
                 )
 
-                for result in search_results:
+                for result in search_results[:10]:
 
                     (
                         short_label,
@@ -1045,6 +1212,13 @@ if st.session_state.course_menu_open:
                                     "course details."
                                 )
 
+                if len(search_results) > 10:
+
+                    st.caption(
+                        "Type more letters to narrow "
+                        "the search results."
+                    )
+
         except requests.exceptions.RequestException as error:
 
             st.error(
@@ -1085,56 +1259,11 @@ if course_data:
         )
     )
 
-
-    # =====================================================
-    # COURSE / LAYOUT
-    # =====================================================
-
-    layouts = (
-        course_data.get(
-            "courses"
-        )
-        or course_data.get(
-            "layouts"
-        )
-        or []
+    course_layout = (
+        course_name
+        or club_name
+        or "Main Course"
     )
-
-    if len(layouts) > 1:
-
-        layout_names = []
-
-        for layout in layouts:
-
-            layout_name = (
-                layout.get(
-                    "course_name"
-                )
-                or layout.get(
-                    "name"
-                )
-                or layout.get(
-                    "layout_name"
-                )
-                or "Course"
-            )
-
-            layout_names.append(
-                layout_name
-            )
-
-        course_layout = st.selectbox(
-            "Course / Layout",
-            layout_names
-        )
-
-    else:
-
-        course_layout = (
-            course_name
-            or club_name
-            or "Main Course"
-        )
 
 
     # =====================================================
@@ -1316,12 +1445,6 @@ if course_data:
                     "this nine."
                 )
 
-                st.caption(
-                    "WHS requires a valid 9-hole "
-                    "Course Rating and Slope Rating "
-                    "before a 9-hole score can be used."
-                )
-
             else:
 
                 st.warning(
@@ -1330,10 +1453,6 @@ if course_data:
                 )
 
         else:
-
-            # =============================================
-            # PLAYER'S CURRENT HANDICAP
-            # =============================================
 
             existing_handicap = (
                 get_player_handicap(
@@ -1432,10 +1551,6 @@ if course_data:
                         )
 
 
-                # =========================================
-                # ROUND RATING
-                # =========================================
-
                 if round_rating is not None:
 
                     st.metric(
@@ -1444,30 +1559,6 @@ if course_data:
                     )
 
                     show_round_rating_info()
-
-                    if holes_played == 9:
-
-                        with st.expander(
-                            "ℹ️ How was this 9-hole "
-                            "Round Rating created?"
-                        ):
-
-                            st.markdown(
-                                f"""
-Your played nine produces a 9-hole performance
-differential.
-
-WHS combines that with an **expected score** for the
-other nine based on your Handicap Index.
-
-For this unofficial tracker, the expected component
-is estimated at **{expected_nine:.2f}**.
-
-The authorised WHS handicapping system uses its own
-expected-score calculation, so the official result
-may differ slightly.
-                                """
-                            )
 
                 elif holes_played == 9:
 
@@ -1481,7 +1572,7 @@ may differ slightly.
 
 
                 # =========================================
-                # SAVE TOTAL ROUND
+                # SAVE TOTAL ROUND TO SUPABASE
                 # =========================================
 
                 if st.button(
@@ -1496,40 +1587,78 @@ may differ slightly.
                             "Please select a player."
                         )
 
+                    elif player not in PLAYER_ID_BY_NAME:
+
+                        st.error(
+                            "This player could not be "
+                            "found in the database."
+                        )
+
                     else:
 
-                        st.session_state.rounds.append(
-                            {
-                                "Player": player,
-                                "Date": date_played,
-                                "Holes": holes_played,
-                                "Nine": nine_choice,
-                                "Golf Course": club_name,
-                                "Course / Layout": course_layout,
-                                "Tees": selected_tee_name,
-                                "Course Rating": course_rating,
-                                "Slope Rating": slope_rating,
-                                "Par": course_par,
-                                "Gross Score": handicap_score,
-                                "Adjusted Score": handicap_score,
-                                "Differential": (
-                                    round(
-                                        round_rating,
-                                        1
-                                    )
-                                    if round_rating is not None
-                                    else None
-                                ),
-                                "Entry Method": "Total",
-                                "Expected Nine": expected_nine
-                            }
-                        )
+                        database_record = {
+                            "player_id": PLAYER_ID_BY_NAME[player],
+                            "date_played": date_played.isoformat(),
+                            "holes": int(holes_played),
+                            "nine": nine_choice,
+                            "golf_course": club_name,
+                            "course_layout": course_layout,
+                            "course_api_id": (
+                                str(course_id)
+                                if course_id is not None
+                                else None
+                            ),
+                            "tees": selected_tee_name,
+                            "course_rating": float(course_rating),
+                            "slope_rating": int(slope_rating),
+                            "par": (
+                                int(course_par)
+                                if course_par is not None
+                                else None
+                            ),
+                            "gross_score": int(handicap_score),
+                            "adjusted_score": int(handicap_score),
+                            "round_rating": (
+                                round(
+                                    float(round_rating),
+                                    1
+                                )
+                                if round_rating is not None
+                                else None
+                            ),
+                            "entry_method": "Total",
+                            "hole_scores": None,
+                            "expected_nine": (
+                                float(expected_nine)
+                                if expected_nine is not None
+                                else None
+                            )
+                        }
 
-                        st.success(
-                            "Round saved."
-                        )
+                        try:
 
-                        st.rerun()
+                            save_round_to_database(
+                                database_record
+                            )
+
+                            load_rounds_from_database.clear()
+
+                            st.success(
+                                "Round saved permanently."
+                            )
+
+                            st.rerun()
+
+                        except requests.exceptions.RequestException as error:
+
+                            st.error(
+                                "The round could not be "
+                                "saved to the database."
+                            )
+
+                            st.caption(
+                                str(error)
+                            )
 
 
             # =============================================
@@ -1616,10 +1745,6 @@ may differ slightly.
                         )
 
 
-                    # =====================================
-                    # HOLE SCORES
-                    # =====================================
-
                     raw_scores = []
                     adjusted_scores = []
                     adjustment_details = []
@@ -1659,19 +1784,13 @@ may differ slightly.
                             hole_par = 4
 
 
-                        # =================================
-                        # MAXIMUM HOLE SCORE
-                        # =================================
-
                         if (
                             existing_handicap is None
                             or course_handicap is None
                         ):
 
                             maximum_hole_score = (
-                                int(
-                                    hole_par
-                                )
+                                int(hole_par)
                                 + 5
                             )
 
@@ -1685,9 +1804,7 @@ may differ slightly.
                             )
 
                             maximum_hole_score = (
-                                int(
-                                    hole_par
-                                )
+                                int(hole_par)
                                 + 2
                                 + strokes_received
                             )
@@ -1762,10 +1879,6 @@ may differ slightly.
                             )
 
 
-                    # =====================================
-                    # TOTALS
-                    # =====================================
-
                     gross_score = sum(
                         raw_scores
                     )
@@ -1810,10 +1923,6 @@ may differ slightly.
                                 )
                             )
 
-
-                    # =====================================
-                    # SUMMARY
-                    # =====================================
 
                     st.markdown(
                         "### Round summary"
@@ -1875,7 +1984,7 @@ may differ slightly.
 
 
                     # =====================================
-                    # SAVE HOLE-BY-HOLE
+                    # SAVE HOLE-BY-HOLE TO SUPABASE
                     # =====================================
 
                     if st.button(
@@ -1890,41 +1999,78 @@ may differ slightly.
                                 "Please select a player."
                             )
 
+                        elif player not in PLAYER_ID_BY_NAME:
+
+                            st.error(
+                                "This player could not be "
+                                "found in the database."
+                            )
+
                         else:
 
-                            st.session_state.rounds.append(
-                                {
-                                    "Player": player,
-                                    "Date": date_played,
-                                    "Holes": holes_played,
-                                    "Nine": nine_choice,
-                                    "Golf Course": club_name,
-                                    "Course / Layout": course_layout,
-                                    "Tees": selected_tee_name,
-                                    "Course Rating": course_rating,
-                                    "Slope Rating": slope_rating,
-                                    "Par": course_par,
-                                    "Gross Score": gross_score,
-                                    "Adjusted Score": adjusted_score,
-                                    "Differential": (
-                                        round(
-                                            round_rating,
-                                            1
-                                        )
-                                        if round_rating is not None
-                                        else None
-                                    ),
-                                    "Entry Method": "Hole-by-hole",
-                                    "Hole Scores": raw_scores,
-                                    "Expected Nine": expected_nine
-                                }
-                            )
+                            database_record = {
+                                "player_id": PLAYER_ID_BY_NAME[player],
+                                "date_played": date_played.isoformat(),
+                                "holes": int(holes_played),
+                                "nine": nine_choice,
+                                "golf_course": club_name,
+                                "course_layout": course_layout,
+                                "course_api_id": (
+                                    str(course_id)
+                                    if course_id is not None
+                                    else None
+                                ),
+                                "tees": selected_tee_name,
+                                "course_rating": float(course_rating),
+                                "slope_rating": int(slope_rating),
+                                "par": (
+                                    int(course_par)
+                                    if course_par is not None
+                                    else None
+                                ),
+                                "gross_score": int(gross_score),
+                                "adjusted_score": int(adjusted_score),
+                                "round_rating": (
+                                    round(
+                                        float(round_rating),
+                                        1
+                                    )
+                                    if round_rating is not None
+                                    else None
+                                ),
+                                "entry_method": "Hole-by-hole",
+                                "hole_scores": raw_scores,
+                                "expected_nine": (
+                                    float(expected_nine)
+                                    if expected_nine is not None
+                                    else None
+                                )
+                            }
 
-                            st.success(
-                                "Round saved."
-                            )
+                            try:
 
-                            st.rerun()
+                                save_round_to_database(
+                                    database_record
+                                )
+
+                                load_rounds_from_database.clear()
+
+                                st.success(
+                                    "Round saved permanently."
+                                )
+
+                                st.rerun()
+
+                            except requests.exceptions.RequestException as error:
+
+                                st.error(
+                                    "The round could not be "
+                                    "saved to the database."
+                                )
+
+                                st.caption(
+                                    str(error)
+                                )
 
 
 # =========================================================
@@ -1937,7 +2083,7 @@ st.subheader(
     "🏌️ Player Handicaps"
 )
 
-if not st.session_state.rounds:
+if not all_rounds:
 
     st.info(
         "No scores have been recorded yet."
@@ -1946,7 +2092,7 @@ if not st.session_state.rounds:
 else:
 
     rounds_df = pd.DataFrame(
-        st.session_state.rounds
+        all_rounds
     )
 
     players_with_scores = [
@@ -1977,7 +2123,7 @@ else:
     record_completed_holes = int(
         player_record_df[
             "Holes"
-        ].sum()
+        ].fillna(0).sum()
     )
 
 
@@ -2035,14 +2181,6 @@ else:
                 "Handicap Index automatically."
             )
 
-            st.caption(
-                "This can occur when the initial "
-                "54 holes include 9-hole scores "
-                "whose official expected-score "
-                "values are not available to this "
-                "unofficial tracker."
-            )
-
         else:
 
             st.metric(
@@ -2071,18 +2209,13 @@ else:
         player_record_df.copy()
     )
 
-    if (
-        "Differential"
-        in display_df.columns
-    ):
-
+    display_df[
+        "Round Rating"
+    ] = (
         display_df[
-            "Round Rating"
-        ] = (
-            display_df[
-                "Differential"
-            ]
-        )
+            "Differential"
+        ]
+    )
 
     display_columns = [
         "Date",
