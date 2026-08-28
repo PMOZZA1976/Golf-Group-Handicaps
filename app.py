@@ -1571,7 +1571,7 @@ if course_data:
                     )
 
                     st.caption(
-                        "This exact round has been saved."
+                        "This round has been saved."
                     )
 
 
@@ -1991,7 +1991,7 @@ if course_data:
                         )
 
                         st.caption(
-                            "This exact round has been saved."
+                            "This round has been saved."
                         )
 
 
