@@ -797,7 +797,7 @@ st.write(
 )
 
 st.progress(
-    shown_holes / 54
+    coneted_holes / 54
 )
 
 show_54_hole_info()
