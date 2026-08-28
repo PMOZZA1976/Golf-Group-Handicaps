@@ -2006,7 +2006,7 @@ else:
     if completed_holes < 54:
 
         st.markdown(
-            "### Establishing Handicap Index"
+            "### Building your handicap"
         )
 
         st.write(
