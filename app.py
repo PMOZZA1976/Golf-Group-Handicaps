@@ -12,7 +12,7 @@ from datetime import date
 # =========================================================
 
 st.set_page_config(
-    page_title="Golf Group Handicaps",
+    page_title="Handicap Builder",
     page_icon="⛳",
     layout="centered"
 )
@@ -30,17 +30,23 @@ st.markdown(
     --green: #0f3d2f;
     --green-dark: #0a2b22;
     --green-soft: #183f34;
+
     --cream: #f6f1e8;
     --cream-2: #fbf8f2;
+
     --gold: #b69a5a;
     --gold-soft: #d4c08c;
+
     --text: #15251f;
     --muted: #6a756f;
     --line: #ddd6c8;
     --white: #ffffff;
 }
 
-/* Main page */
+
+/* =====================================================
+   MAIN PAGE
+   ===================================================== */
 
 .stApp {
     background:
@@ -60,9 +66,14 @@ st.markdown(
 }
 
 
-/* Typography */
+/* =====================================================
+   TYPOGRAPHY
+   ===================================================== */
 
-h1, h2, h3, h4 {
+h1,
+h2,
+h3,
+h4 {
     color: var(--green-dark) !important;
     letter-spacing: -0.025em;
 }
@@ -76,7 +87,8 @@ h3 {
     font-size: 1.35rem !important;
 }
 
-p, label {
+p,
+label {
     color: var(--text);
 }
 
@@ -85,7 +97,22 @@ p, label {
 }
 
 
-/* Hero */
+/* Secondary section heading */
+
+.secondary-section-title {
+    color: var(--green-dark);
+    font-family: inherit;
+    font-size: 1.55rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    margin-top: 0.4rem;
+    margin-bottom: 1rem;
+}
+
+
+/* =====================================================
+   HERO
+   ===================================================== */
 
 .golf-hero {
     background:
@@ -104,7 +131,7 @@ p, label {
     border-radius: 0 0 28px 28px;
 
     padding:
-        35px 24px 30px 24px;
+        34px 24px 30px 24px;
 
     margin:
         0.8rem -1rem 1.9rem -1rem;
@@ -116,19 +143,6 @@ p, label {
         1px solid rgba(182,154,90,0.42);
 }
 
-.golf-hero-kicker {
-    color: var(--gold-soft);
-
-    font-size: 0.78rem;
-    font-weight: 700;
-
-    letter-spacing: 0.22em;
-
-    text-transform: uppercase;
-
-    margin-bottom: 11px;
-}
-
 .golf-hero-title {
     color: #ffffff;
 
@@ -138,71 +152,28 @@ p, label {
         serif;
 
     font-size: 2.55rem;
-
     line-height: 1.15;
-
     font-weight: 700;
-
     letter-spacing: -0.035em;
-
     margin-bottom: 13px;
 }
 
 .golf-hero-subtitle {
-    color:
-        rgba(255,255,255,0.78);
-
-    font-size:
-        0.97rem;
-
-    line-height:
-        1.5;
-
-    max-width:
-        610px;
-}
-
-.golf-flow {
-    margin-top:
-        19px;
-
-    display:
-        inline-block;
-
-    border:
-        1px solid rgba(212,192,140,0.78);
-
-    border-radius:
-        999px;
-
-    padding:
-        8px 13px;
-
-    color:
-        #eadfbf;
-
-    font-size:
-        0.69rem;
-
-    font-weight:
-        700;
-
-    letter-spacing:
-        0.055em;
-
-    background:
-        rgba(255,255,255,0.025);
+    color: rgba(255,255,255,0.80);
+    font-size: 0.97rem;
+    line-height: 1.55;
+    max-width: 610px;
 }
 
 
-/* Buttons */
+/* =====================================================
+   STANDARD BUTTONS
+   ===================================================== */
 
 .stButton > button {
-    min-height:
-        50px;
+    min-height: 50px;
 
-    border-radius:
-        14px;
+    border-radius: 14px;
 
     border:
         1px solid #dad4c8;
@@ -213,8 +184,7 @@ p, label {
     color:
         var(--green-dark);
 
-    font-weight:
-        650;
+    font-weight: 650;
 
     box-shadow:
         0 4px 12px rgba(22,45,35,0.05);
@@ -241,71 +211,176 @@ p, label {
 }
 
 .stButton > button:active {
-    transform:
-        translateY(0px);
+    transform: translateY(0);
 }
 
-.stButton > button[kind="primary"] {
+
+/* =====================================================
+   PRIMARY BUTTONS
+   Force Streamlit's internal text to white
+   ===================================================== */
+
+.stButton > button[kind="primary"],
+button[data-testid="stBaseButton-primary"] {
     background:
-        var(--green-dark);
+        var(--green-dark) !important;
 
     color:
-        #ffffff;
+        #ffffff !important;
 
     border-color:
-        var(--green-dark);
+        var(--green-dark) !important;
 
     box-shadow:
-        0 7px 16px rgba(10,43,34,0.16);
+        0 7px 16px rgba(10,43,34,0.16) !important;
 }
 
-.stButton > button[kind="primary"]:hover {
+.stButton > button[kind="primary"] *,
+button[data-testid="stBaseButton-primary"] * {
+    color:
+        #ffffff !important;
+}
+
+.stButton > button[kind="primary"]:hover,
+button[data-testid="stBaseButton-primary"]:hover {
     background:
-        var(--green);
+        var(--green) !important;
 
     color:
-        #ffffff;
+        #ffffff !important;
 
     border-color:
-        var(--gold);
+        var(--gold) !important;
 }
+
+.stButton > button[kind="primary"]:hover *,
+button[data-testid="stBaseButton-primary"]:hover * {
+    color:
+        #ffffff !important;
+}
+
+
+/* Disabled buttons */
 
 .stButton > button:disabled {
-    opacity:
-        0.47;
+    opacity: 0.47;
 }
 
 
-/* Inputs */
+/* =====================================================
+   STANDARD INPUTS
+   ===================================================== */
 
 [data-baseweb="input"],
 [data-baseweb="select"] > div,
-[data-testid="stNumberInput"] input,
 [data-testid="stDateInput"] input,
 .stTextInput input {
-    border-radius:
-        12px !important;
+    border-radius: 12px !important;
 }
 
 
-/* Radio controls */
+/* =====================================================
+   GROSS SCORE INPUT
+   ===================================================== */
+
+.gross-score-heading {
+    color: var(--green-dark);
+    font-size: 0.82rem;
+    font-weight: 750;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-top: 0.5rem;
+    margin-bottom: 0.35rem;
+}
+
+
+/* Make score entry visually dominant */
+
+div[data-testid="stNumberInput"] {
+    margin-top: 0.15rem;
+}
+
+div[data-testid="stNumberInput"] > div {
+    border-radius: 18px !important;
+}
+
+div[data-testid="stNumberInput"] input {
+    min-height: 78px !important;
+
+    background:
+        #ffffff !important;
+
+    color:
+        var(--green-dark) !important;
+
+    font-size:
+        2rem !important;
+
+    font-weight:
+        800 !important;
+
+    letter-spacing:
+        -0.04em !important;
+
+    padding-left:
+        22px !important;
+}
+
+
+/* Outer NumberInput treatment */
+
+div[data-testid="stNumberInput"] [data-baseweb="input"] {
+    background:
+        #ffffff !important;
+
+    border:
+        1px solid #d5cdbf !important;
+
+    border-radius:
+        18px !important;
+
+    box-shadow:
+        0 9px 22px rgba(20,45,35,0.075) !important;
+}
+
+
+/* +/- controls */
+
+div[data-testid="stNumberInput"] button {
+    min-width: 58px !important;
+    min-height: 58px !important;
+
+    color:
+        var(--green-dark) !important;
+
+    font-size:
+        1.3rem !important;
+
+    font-weight:
+        750 !important;
+}
+
+
+/* =====================================================
+   RADIO CONTROLS
+   ===================================================== */
 
 [data-testid="stRadio"] > div {
-    gap:
-        10px;
+    gap: 10px;
 }
 
 [data-testid="stRadio"] label {
-    font-weight:
-        600;
+    font-weight: 600;
 }
 
 
-/* Metrics */
+/* =====================================================
+   METRICS
+   ===================================================== */
 
 [data-testid="stMetric"] {
     background:
-        rgba(255,255,255,0.92);
+        rgba(255,255,255,0.94);
 
     border:
         1px solid #e1dbcf;
@@ -346,11 +421,13 @@ p, label {
 }
 
 
-/* Expanders */
+/* =====================================================
+   EXPANDERS
+   ===================================================== */
 
 [data-testid="stExpander"] {
     background:
-        rgba(255,255,255,0.92);
+        rgba(255,255,255,0.94);
 
     border:
         1px solid #e2dcd0;
@@ -366,16 +443,16 @@ p, label {
 }
 
 [data-testid="stExpander"] summary {
-    font-weight:
-        620;
+    font-weight: 620;
 }
 
 
-/* Progress bar */
+/* =====================================================
+   PROGRESS
+   ===================================================== */
 
 [data-testid="stProgress"] > div > div {
-    border-radius:
-        999px;
+    border-radius: 999px;
 }
 
 [data-testid="stProgress"] > div > div > div {
@@ -388,7 +465,9 @@ p, label {
 }
 
 
-/* Tables */
+/* =====================================================
+   TABLES
+   ===================================================== */
 
 [data-testid="stDataFrame"] {
     border:
@@ -405,15 +484,18 @@ p, label {
 }
 
 
-/* Alerts */
+/* =====================================================
+   ALERTS
+   ===================================================== */
 
 [data-testid="stAlert"] {
-    border-radius:
-        14px;
+    border-radius: 14px;
 }
 
 
-/* Divider */
+/* =====================================================
+   DIVIDERS
+   ===================================================== */
 
 hr {
     border-color:
@@ -427,57 +509,54 @@ hr {
 }
 
 
-/* Mobile */
+/* =====================================================
+   MOBILE
+   ===================================================== */
 
 @media (max-width: 640px) {
 
     .block-container {
-        padding-left:
-            1rem;
-
-        padding-right:
-            1rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
     }
 
     .golf-hero {
         padding:
-            26px 18px 24px 18px;
+            30px 18px 26px 18px;
+
+        margin:
+            0.8rem -1rem 1.8rem -1rem;
     }
 
     .golf-hero-title {
-        font-size:
-            2.15rem;
+        font-size: 2.15rem;
+        line-height: 1.15;
     }
 
     .golf-hero-subtitle {
-        font-size:
-            0.93rem;
-    }
-
-    .golf-flow {
-        font-size:
-            0.62rem;
-
-        padding:
-            7px 9px;
+        font-size: 0.93rem;
     }
 
     .stButton > button {
-        min-height:
-            52px;
-
-        font-size:
-            0.96rem;
+        min-height: 52px;
+        font-size: 0.96rem;
     }
 
     [data-testid="stMetric"] {
-        padding:
-            13px 12px;
+        padding: 13px 12px;
     }
 
     [data-testid="stMetricValue"] {
-        font-size:
-            1.55rem;
+        font-size: 1.55rem;
+    }
+
+    div[data-testid="stNumberInput"] input {
+        min-height: 74px !important;
+        font-size: 2rem !important;
+    }
+
+    .secondary-section-title {
+        font-size: 1.45rem;
     }
 }
 
@@ -1418,7 +1497,7 @@ def build_course_labels(
 
 
 # =========================================================
-# INFORMATION BOXES
+# INFORMATION
 # =========================================================
 
 def show_round_rating_info():
@@ -1432,8 +1511,8 @@ def show_round_rating_info():
 **Round Rating** is our simpler name for the WHS
 **Score Differential**.
 
-It tells you how good that round was after allowing
-for the difficulty of the course and tees.
+It shows how good the round was after allowing for
+the difficulty of the course and tees.
 
 **Lower is better.**
 
@@ -1458,8 +1537,8 @@ To establish your first **Handicap Index**, WHS
 requires acceptable scores covering at least
 **54 completed holes**.
 
-These can be made up of **9-hole and 18-hole rounds
-in any combination**.
+These can be made up of 9-hole and 18-hole rounds
+in any combination.
 
 For example:
 
@@ -1470,10 +1549,6 @@ For example:
 Until you reach 54 completed holes, the app will
 show your progress but will not give you an initial
 Handicap Index.
-
-Once 54 completed holes have been reached, the app
-can establish your initial Handicap Index from your
-eligible scores.
 
 This app provides an **unofficial WHS-based**
 Handicap Index and is not an authorised handicapping
@@ -1544,6 +1619,22 @@ def show_saved_round_card():
         else ""
     )
 
+    player_text = str(
+        saved["player"]
+    )
+
+    if player_text.endswith("s"):
+
+        possessive_player = (
+            f"{player_text}'"
+        )
+
+    else:
+
+        possessive_player = (
+            f"{player_text}'s"
+        )
+
     st.markdown(
         f"""<div style="
 background:#ffffff;
@@ -1582,19 +1673,22 @@ color:#0a2b22;
 <div style="
 font-size:0.84rem;
 color:#6a756f;
-">Your score has been added to the group record.</div>
+">Round added to {possessive_player} handicap record.</div>
 </div>
 </div>
+
 <div style="
 height:1px;
 background:#e7e0d4;
 margin:17px 0;
 "></div>
+
 <div style="
 display:grid;
 grid-template-columns:repeat(3,1fr);
 gap:12px;
 ">
+
 <div>
 <div style="
 font-size:0.64rem;
@@ -1609,6 +1703,7 @@ color:#15251f;
 font-weight:650;
 ">{saved['player']}</div>
 </div>
+
 <div>
 <div style="
 font-size:0.64rem;
@@ -1623,6 +1718,7 @@ color:#15251f;
 font-weight:650;
 ">{saved['date']}</div>
 </div>
+
 <div>
 <div style="
 font-size:0.64rem;
@@ -1637,12 +1733,15 @@ color:#15251f;
 font-weight:650;
 ">{saved['holes']}{nine_text}</div>
 </div>
+
 </div>
+
 <div style="
 height:1px;
 background:#eee8dd;
 margin:16px 0;
 "></div>
+
 <div style="
 font-size:0.64rem;
 letter-spacing:0.07em;
@@ -1650,27 +1749,32 @@ color:#777e79;
 text-transform:uppercase;
 font-weight:700;
 ">Course</div>
+
 <div style="
 margin-top:4px;
 color:#15251f;
 font-size:1rem;
 font-weight:650;
 ">{saved['course']}</div>
+
 <div style="
 margin-top:3px;
 color:#6a756f;
 font-size:0.84rem;
 ">{saved['tees']} tees</div>
+
 <div style="
 height:1px;
 background:#eee8dd;
 margin:16px 0;
 "></div>
+
 <div style="
 display:grid;
 grid-template-columns:repeat(2,1fr);
 gap:12px;
 ">
+
 <div style="
 background:#f6f2e9;
 border:1px solid #ece4d5;
@@ -1691,6 +1795,7 @@ font-weight:800;
 margin-top:2px;
 ">{saved['gross_score']}</div>
 </div>
+
 <div style="
 background:#f6f2e9;
 border:1px solid #ece4d5;
@@ -1711,6 +1816,7 @@ font-weight:800;
 margin-top:2px;
 ">{round_rating_text}</div>
 </div>
+
 </div>
 </div>""",
         unsafe_allow_html=True
@@ -1751,7 +1857,7 @@ show_saved_round_card()
 
 
 # =========================================================
-# PLAYER SELECTION
+# PLAYER
 # =========================================================
 
 st.markdown(
@@ -1873,7 +1979,7 @@ if player is not None:
 
 
 # =========================================================
-# GOLF COURSE SELECTOR
+# GOLF COURSE
 # =========================================================
 
 st.markdown(
@@ -2034,7 +2140,7 @@ if st.session_state.course_menu_open:
 
 
 # =========================================================
-# SELECTED COURSE DATA
+# SELECTED COURSE
 # =========================================================
 
 course_data = (
@@ -2278,12 +2384,22 @@ if course_data:
                     else 100
                 )
 
+                st.markdown(
+                    '<div class="gross-score-heading">Gross Score</div>',
+                    unsafe_allow_html=True
+                )
+
                 handicap_score = st.number_input(
-                    "Gross score for handicap purposes",
+                    "Gross Score",
                     min_value=minimum_score,
                     max_value=maximum_total_score,
                     value=default_score,
-                    step=1
+                    step=1,
+                    label_visibility="collapsed"
+                )
+
+                st.caption(
+                    "Enter the score to be used for handicap purposes."
                 )
 
                 round_rating = None
@@ -2363,7 +2479,7 @@ if course_data:
                 # =========================================
 
                 if st.button(
-                    "Save Round",
+                    "Save round",
                     use_container_width=True,
                     key="save_total_round",
                     disabled=already_saved,
@@ -2774,7 +2890,7 @@ if course_data:
                     )
 
                     gross_col.metric(
-                        "Gross score",
+                        "Gross Score",
                         gross_score
                     )
 
@@ -2846,7 +2962,7 @@ if course_data:
                     # =====================================
 
                     if st.button(
-                        "Save Round",
+                        "Save round",
                         use_container_width=True,
                         key="save_hole_round",
                         disabled=already_saved,
@@ -2995,8 +3111,9 @@ if course_data:
 
 st.divider()
 
-st.subheader(
-    "Player Handicaps"
+st.markdown(
+    '<div class="secondary-section-title">Player Handicaps</div>',
+    unsafe_allow_html=True
 )
 
 if not all_rounds:
@@ -3302,10 +3419,6 @@ with st.expander(
             )
 
 
-            # =============================================
-            # SELECT ROUND TO DELETE
-            # =============================================
-
             round_options = {}
 
             for index, round_item in enumerate(
@@ -3400,10 +3513,6 @@ with st.expander(
             )
 
 
-            # =============================================
-            # FIRST DELETE BUTTON
-            # =============================================
-
             if (
                 st.session_state.pending_delete_round_id
                 != selected_round_id
@@ -3420,11 +3529,6 @@ with st.expander(
                     )
 
                     st.rerun()
-
-
-            # =============================================
-            # CONFIRM DELETE
-            # =============================================
 
             else:
 
@@ -3496,7 +3600,7 @@ with st.expander(
 st.divider()
 
 st.caption(
-    "Golf Group Handicaps provides an "
-    "unofficial WHS-based handicap estimate "
-    "and is not an authorised handicapping service."
+    "Handicap Builder provides an unofficial WHS-based "
+    "handicap estimate and is not an authorised "
+    "handicapping service."
 )
