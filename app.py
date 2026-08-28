@@ -61,6 +61,9 @@ if "course_results" not in st.session_state:
 if "selected_course_data" not in st.session_state:
     st.session_state.selected_course_data = None
 
+if "selected_player_entry" not in st.session_state:
+    st.session_state.selected_player_entry = None
+
 
 # =========================================================
 # COURSE API
@@ -147,7 +150,7 @@ def estimated_expected_nine(
     handicap_index
 ):
 
-    # Unofficial approximation.
+    # Unofficial approximation only.
     # The authorised WHS system performs the
     # official expected-score calculation.
 
@@ -702,31 +705,57 @@ st.subheader(
 
 # =========================================================
 # PLAYER SELECTION
-# Mobile-friendly list opens DOWNWARDS
 # =========================================================
 
 st.markdown(
     "**Player**"
 )
 
-with st.expander(
-    "Select player",
-    expanded=False
+player_button_text = (
+    st.session_state.selected_player_entry
+    if st.session_state.selected_player_entry
+    else "Select player"
+)
+
+with st.popover(
+    player_button_text,
+    use_container_width=True
 ):
 
-    player = st.radio(
-        "Choose player",
+    current_player = (
+        st.session_state.selected_player_entry
+    )
+
+    current_index = (
+        PLAYERS.index(current_player)
+        if current_player in PLAYERS
+        else None
+    )
+
+    selected_player_option = st.radio(
+        "Player",
         PLAYERS,
-        index=None,
-        label_visibility="collapsed"
+        index=current_index,
+        label_visibility="collapsed",
+        key="player_picker"
     )
 
+    if (
+        selected_player_option is not None
+        and selected_player_option
+        != st.session_state.selected_player_entry
+    ):
 
-if player is not None:
+        st.session_state.selected_player_entry = (
+            selected_player_option
+        )
 
-    st.caption(
-        f"Selected player: **{player}**"
-    )
+        st.rerun()
+
+
+player = (
+    st.session_state.selected_player_entry
+)
 
 
 # =========================================================
@@ -1115,7 +1144,7 @@ if course_data:
 
 
         # =================================================
-        # 9 OR 18 HOLE COURSE VALUES
+        # 9 OR 18 HOLE VALUES
         # =================================================
 
         nine_choice = None
@@ -1230,7 +1259,6 @@ if course_data:
                     "Course Rating or Slope Rating "
                     "is unavailable for these tees."
                 )
-
 
         else:
 
