@@ -397,11 +397,9 @@ unsafe_allow_html=True
 st.markdown(
 """<div class="golf-hero">
 <div class="golf-hero-kicker">⛳ GOLF WANKERS</div>
-<div class="golf-hero-title">Golf Handicaps</div>
+<div class="golf-hero-title">Handicap Builder</div>
 <div class="golf-hero-subtitle">
 Track rounds, compare performances and build an unofficial WHS-based Handicap Index.
-</div>
-<div class="golf-flow">
 </div>
 </div>""",
 unsafe_allow_html=True
