@@ -705,11 +705,17 @@ st.subheader(
 
 # =========================================================
 # PLAYER SELECTION
+# Mobile-friendly selector that definitely closes
 # =========================================================
 
-st.markdown(
-    "**Player**"
-)
+if "selected_player_entry" not in st.session_state:
+    st.session_state.selected_player_entry = None
+
+if "player_menu_open" not in st.session_state:
+    st.session_state.player_menu_open = False
+
+
+st.markdown("**Player**")
 
 player_button_text = (
     st.session_state.selected_player_entry
@@ -717,46 +723,37 @@ player_button_text = (
     else "Select player"
 )
 
-with st.popover(
-    player_button_text,
-    use_container_width=True
+if st.button(
+    f"{player_button_text}  ▾",
+    use_container_width=True,
+    key="open_player_menu"
 ):
-
-    current_player = (
-        st.session_state.selected_player_entry
+    st.session_state.player_menu_open = (
+        not st.session_state.player_menu_open
     )
-
-    current_index = (
-        PLAYERS.index(current_player)
-        if current_player in PLAYERS
-        else None
-    )
-
-    selected_player_option = st.radio(
-        "Player",
-        PLAYERS,
-        index=current_index,
-        label_visibility="collapsed",
-        key="player_picker"
-    )
-
-    if (
-        selected_player_option is not None
-        and selected_player_option
-        != st.session_state.selected_player_entry
-    ):
-
-        st.session_state.selected_player_entry = (
-            selected_player_option
-        )
-
-        st.rerun()
+    st.rerun()
 
 
-player = (
-    st.session_state.selected_player_entry
-)
+if st.session_state.player_menu_open:
 
+    for player_name in PLAYERS:
+
+        if st.button(
+            player_name,
+            use_container_width=True,
+            key=f"choose_player_{player_name}"
+        ):
+
+            st.session_state.selected_player_entry = (
+                player_name
+            )
+
+            st.session_state.player_menu_open = False
+
+            st.rerun()
+
+
+player = st.session_state.selected_player_entry
 
 # =========================================================
 # DATE / HOLES
