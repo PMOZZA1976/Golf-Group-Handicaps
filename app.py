@@ -402,7 +402,6 @@ st.markdown(
 Track rounds, compare performances and build an unofficial WHS-based Handicap Index.
 </div>
 <div class="golf-flow">
-GROSS SCORE &nbsp;→&nbsp; ROUND RATING &nbsp;→&nbsp; HANDICAP INDEX
 </div>
 </div>""",
 unsafe_allow_html=True
