@@ -1,14 +1,13 @@
 import streamlit as st
-import pandas as pd
 
 st.set_page_config(
-    page_title="Golf Handicap Tracker",
+    page_title="Golf Group Handicaps",
     page_icon="⛳",
     layout="centered"
 )
 
-st.title("⛳ Golf Handicap Tracker")
-st.caption("Unofficial WHS-style handicap calculator")
+st.title("⛳ Golf Group Handicaps")
+st.caption("Unofficial WHS-style handicap tracker")
 
 st.subheader("Add a round")
 
@@ -36,22 +35,16 @@ slope_rating = st.number_input(
 
 if st.button("Calculate Score Differential"):
     differential = (score - course_rating) * 113 / slope_rating
-
-    st.success(
-        f"Score Differential: {differential:.1f}"
-    )
+    st.success(f"Score Differential: {differential:.1f}")
 
 st.divider()
 
-st.subheader("How the handicap will work")
+st.subheader("Your handicap")
 
 st.write(
     """
-    Once 20 rounds have been entered, the app will:
-
-    • take the most recent 20 rounds  
-    • identify the lowest 8 Score Differentials  
-    • average those 8 scores  
-    • display the player's Handicap Index
+    Once enough rounds have been recorded, Golf Group Handicaps
+    will calculate your handicap using your best Score Differentials
+    from your most recent rounds.
     """
 )
