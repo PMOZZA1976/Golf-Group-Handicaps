@@ -789,24 +789,18 @@ if player is not None:
     if completed_holes < 54:
 
         st.markdown(
-            "### Establishing Handicap Index"
-        )
+    "### Building your Handicap"
+)
 
-        shown_holes = min(
-            completed_holes,
-            54
-        )
+st.write(
+    f"**{shown_holes} of 54 completed holes**"
+)
 
-        st.write(
-            f"**{shown_holes} of "
-            f"54 completed holes**"
-        )
+st.progress(
+    shown_holes / 54
+)
 
-        st.progress(
-            shown_holes / 54
-        )
-
-        show_54_hole_info()
+show_54_hole_info()
 
 
 # =========================================================
