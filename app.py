@@ -23,320 +23,370 @@ st.set_page_config(
 # =========================================================
 
 st.markdown(
-    """
-    <style>
+"""
+<style>
 
-    .stApp {
-        background:
-            linear-gradient(
-                180deg,
-                #f4f1e8 0%,
-                #faf9f5 35%,
-                #f6f5f0 100%
-            );
-        color: #17241d;
-    }
+:root {
+    --green: #0f3d2f;
+    --green-dark: #0a2b22;
+    --green-soft: #183f34;
+    --cream: #f6f1e8;
+    --cream-2: #fbf8f2;
+    --gold: #b69a5a;
+    --gold-soft: #d4c08c;
+    --text: #15251f;
+    --muted: #6a756f;
+    --line: #ddd6c8;
+    --white: #ffffff;
+}
+
+.stApp {
+    background: var(--cream-2);
+    color: var(--text);
+}
+
+.block-container {
+    max-width: 760px;
+    padding-top: 0.8rem;
+    padding-bottom: 4rem;
+}
+
+/* Headings */
+h1, h2, h3, h4 {
+    color: var(--green-dark) !important;
+    letter-spacing: -0.02em;
+}
+
+h2 {
+    font-size: 2rem !important;
+}
+
+h3 {
+    font-size: 1.35rem !important;
+}
+
+p, label {
+    color: var(--text);
+}
+
+[data-testid="stCaptionContainer"] {
+    color: var(--muted) !important;
+}
+
+/* Hero */
+.golf-hero {
+    background:
+        linear-gradient(
+            135deg,
+            #0a2b22 0%,
+            #10392d 58%,
+            #184a39 100%
+        );
+
+    border-radius: 0 0 26px 26px;
+    padding: 30px 24px 28px 24px;
+    margin: -0.8rem -1rem 1.8rem -1rem;
+
+    box-shadow:
+        0 14px 32px rgba(13, 50, 38, 0.18);
+
+    border-bottom:
+        1px solid rgba(182, 154, 90, 0.35);
+}
+
+.golf-hero-kicker {
+    color: var(--gold-soft);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+}
+
+.golf-hero-title {
+    color: white;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 2.5rem;
+    line-height: 1.05;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin-bottom: 12px;
+}
+
+.golf-hero-subtitle {
+    color: rgba(255,255,255,0.80);
+    font-size: 0.98rem;
+    line-height: 1.5;
+    max-width: 620px;
+}
+
+.golf-flow {
+    margin-top: 18px;
+    display: inline-block;
+
+    border:
+        1px solid rgba(212, 192, 140, 0.75);
+
+    border-radius: 999px;
+
+    padding:
+        8px 13px;
+
+    color:
+        #eadfbf;
+
+    font-size:
+        0.72rem;
+
+    font-weight:
+        700;
+
+    letter-spacing:
+        0.06em;
+
+    background:
+        rgba(255,255,255,0.03);
+}
+
+/* Buttons */
+.stButton > button {
+    min-height: 50px;
+    border-radius: 14px;
+    border: 1px solid #d9d3c7;
+
+    background: #ffffff;
+    color: var(--green-dark);
+
+    font-weight: 650;
+
+    box-shadow:
+        0 4px 12px rgba(22, 45, 35, 0.05);
+
+    transition: all 0.15s ease;
+}
+
+.stButton > button:hover {
+    border-color: var(--gold);
+    color: var(--green-dark);
+    background: #fffefa;
+
+    box-shadow:
+        0 7px 18px rgba(25, 55, 42, 0.08);
+
+    transform: translateY(-1px);
+}
+
+.stButton > button[kind="primary"] {
+    background: var(--green-dark);
+    color: white;
+    border-color: var(--green-dark);
+
+    box-shadow:
+        0 7px 16px rgba(10, 43, 34, 0.16);
+}
+
+.stButton > button[kind="primary"]:hover {
+    background: var(--green);
+    color: white;
+    border-color: var(--gold);
+}
+
+.stButton > button:disabled {
+    opacity: 0.5;
+}
+
+/* Inputs */
+[data-baseweb="input"],
+[data-baseweb="select"] > div,
+[data-testid="stNumberInput"] input,
+[data-testid="stDateInput"] input,
+.stTextInput input {
+    border-radius: 12px !important;
+}
+
+/* Radio */
+[data-testid="stRadio"] > div {
+    gap: 10px;
+}
+
+[data-testid="stRadio"] label {
+    font-weight: 600;
+}
+
+/* Metrics */
+[data-testid="stMetric"] {
+    background: var(--white);
+
+    border:
+        1px solid #e1dbcf;
+
+    border-radius:
+        16px;
+
+    padding:
+        15px 16px;
+
+    box-shadow:
+        0 5px 15px rgba(20, 50, 38, 0.05);
+}
+
+[data-testid="stMetricLabel"] {
+    color: var(--muted);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+[data-testid="stMetricValue"] {
+    color: var(--green-dark);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+}
+
+/* Expanders */
+[data-testid="stExpander"] {
+    background: var(--white);
+
+    border:
+        1px solid #e2dcd0;
+
+    border-radius:
+        14px;
+
+    overflow:
+        hidden;
+
+    box-shadow:
+        0 3px 10px rgba(22, 50, 39, 0.04);
+}
+
+[data-testid="stExpander"] summary {
+    font-weight: 620;
+}
+
+/* Progress */
+[data-testid="stProgress"] > div > div {
+    border-radius: 999px;
+}
+
+[data-testid="stProgress"] > div > div > div {
+    background:
+        linear-gradient(
+            90deg,
+            var(--green-dark),
+            var(--gold)
+        );
+}
+
+/* Tables */
+[data-testid="stDataFrame"] {
+    border:
+        1px solid #e0d9cb;
+
+    border-radius:
+        15px;
+
+    overflow:
+        hidden;
+
+    box-shadow:
+        0 4px 14px rgba(20, 45, 35, 0.04);
+}
+
+/* Alerts */
+[data-testid="stAlert"] {
+    border-radius: 14px;
+}
+
+/* Divider */
+hr {
+    border-color: var(--line) !important;
+    margin-top: 2rem !important;
+    margin-bottom: 1.6rem !important;
+}
+
+/* Section card */
+.section-card {
+    background: rgba(255,255,255,0.82);
+
+    border:
+        1px solid #e2dcd0;
+
+    border-radius:
+        18px;
+
+    padding:
+        18px 18px 8px 18px;
+
+    margin-bottom:
+        1.2rem;
+
+    box-shadow:
+        0 7px 20px rgba(20, 48, 37, 0.045);
+}
+
+/* Small badge */
+.gold-badge {
+    display: inline-block;
+
+    color:
+        #7b642f;
+
+    background:
+        #f3ead2;
+
+    border:
+        1px solid #dbc995;
+
+    padding:
+        5px 9px;
+
+    border-radius:
+        999px;
+
+    font-size:
+        0.72rem;
+
+    font-weight:
+        700;
+
+    letter-spacing:
+        0.04em;
+}
+
+@media (max-width: 640px) {
 
     .block-container {
-        max-width: 760px;
-        padding-top: 1.2rem;
-        padding-bottom: 4rem;
-    }
-
-    h1, h2, h3, h4 {
-        color: #123c2d !important;
-        letter-spacing: -0.02em;
-    }
-
-    h2 {
-        margin-top: 1.8rem !important;
-    }
-
-    h3 {
-        margin-top: 1.3rem !important;
-    }
-
-    p, label {
-        color: #29382f;
-    }
-
-    [data-testid="stCaptionContainer"] {
-        color: #6d776f !important;
+        padding-left: 1rem;
+        padding-right: 1rem;
     }
 
     .golf-hero {
-        background:
-            linear-gradient(
-                135deg,
-                #0d3b2b 0%,
-                #15563e 60%,
-                #1d694c 100%
-            );
-
-        border-radius: 24px;
-        padding: 25px 22px 22px 22px;
-        margin-bottom: 1.5rem;
-
-        box-shadow:
-            0 14px 35px rgba(17, 58, 42, 0.18);
-
-        border:
-            1px solid rgba(255,255,255,0.10);
-    }
-
-    .golf-hero-top {
-        font-size: 0.78rem;
-        font-weight: 700;
-        letter-spacing: 0.13em;
-        text-transform: uppercase;
-        color: #d8c486;
-        margin-bottom: 8px;
+        padding: 26px 18px 24px 18px;
     }
 
     .golf-hero-title {
-        font-size: 2.05rem;
-        line-height: 1.05;
-        font-weight: 800;
-        color: #ffffff;
-        letter-spacing: -0.04em;
-        margin-bottom: 9px;
+        font-size: 2.15rem;
     }
 
     .golf-hero-subtitle {
-        font-size: 0.92rem;
-        line-height: 1.45;
-        color: rgba(255,255,255,0.78);
+        font-size: 0.93rem;
     }
 
-    .golf-hero-pill {
-        display: inline-block;
-        margin-top: 14px;
-        padding: 6px 11px;
-
-        border-radius: 999px;
-
-        background:
-            rgba(255,255,255,0.10);
-
-        color: #f5e6ac;
-
-        font-size: 0.73rem;
-        font-weight: 700;
-
-        border:
-            1px solid rgba(255,255,255,0.10);
+    .golf-flow {
+        font-size: 0.66rem;
+        padding: 7px 10px;
     }
 
     .stButton > button {
-        min-height: 48px;
-
-        border-radius: 14px;
-
-        border:
-            1px solid #d8ddd7;
-
-        background:
-            rgba(255,255,255,0.88);
-
-        color:
-            #123c2d;
-
-        font-weight: 650;
-
-        box-shadow:
-            0 3px 9px rgba(20, 50, 35, 0.06);
-
-        transition:
-            all 0.16s ease;
+        min-height: 52px;
+        font-size: 0.96rem;
     }
+}
 
-    .stButton > button:hover {
-        border-color: #1b6248;
-
-        color: #0e432f;
-
-        background:
-            #ffffff;
-
-        box-shadow:
-            0 6px 16px rgba(20, 70, 45, 0.11);
-
-        transform:
-            translateY(-1px);
-    }
-
-    .stButton > button:active {
-        transform:
-            translateY(0px);
-    }
-
-    .stButton > button[kind="primary"] {
-        background:
-            #15563e;
-
-        color:
-            white;
-
-        border-color:
-            #15563e;
-    }
-
-    .stButton > button:disabled {
-        opacity: 0.55;
-    }
-
-    [data-baseweb="input"] {
-        border-radius: 13px !important;
-    }
-
-    [data-baseweb="select"] > div {
-        border-radius: 13px !important;
-    }
-
-    [data-testid="stNumberInput"] input,
-    [data-testid="stDateInput"] input,
-    .stTextInput input {
-        border-radius: 13px !important;
-    }
-
-    [data-testid="stRadio"] > div {
-        gap: 8px;
-    }
-
-    [data-testid="stRadio"] label {
-        font-weight: 600;
-    }
-
-    [data-testid="stMetric"] {
-        background:
-            rgba(255,255,255,0.88);
-
-        border:
-            1px solid #e0e4df;
-
-        border-radius:
-            17px;
-
-        padding:
-            14px 15px;
-
-        box-shadow:
-            0 5px 16px rgba(20, 60, 40, 0.06);
-    }
-
-    [data-testid="stMetricLabel"] {
-        color:
-            #6b766e;
-    }
-
-    [data-testid="stMetricValue"] {
-        color:
-            #123c2d;
-
-        font-weight:
-            800;
-
-        letter-spacing:
-            -0.03em;
-    }
-
-    [data-testid="stExpander"] {
-        background:
-            rgba(255,255,255,0.72);
-
-        border:
-            1px solid #e0e5df;
-
-        border-radius:
-            15px;
-
-        overflow:
-            hidden;
-    }
-
-    [data-testid="stExpander"] summary {
-        font-weight:
-            650;
-    }
-
-    [data-testid="stProgress"] > div > div {
-        border-radius:
-            999px;
-    }
-
-    [data-testid="stProgress"] > div > div > div {
-        background:
-            linear-gradient(
-                90deg,
-                #15563e,
-                #2f8462
-            );
-    }
-
-    [data-testid="stDataFrame"] {
-        border:
-            1px solid #dfe4df;
-
-        border-radius:
-            16px;
-
-        overflow:
-            hidden;
-
-        box-shadow:
-            0 5px 16px rgba(20, 60, 40, 0.05);
-    }
-
-    [data-testid="stAlert"] {
-        border-radius:
-            15px;
-    }
-
-    hr {
-        margin-top:
-            2.2rem !important;
-
-        margin-bottom:
-            1.7rem !important;
-
-        border-color:
-            #dfe3dd !important;
-    }
-
-    @media (max-width: 640px) {
-
-        .block-container {
-            padding-left: 1rem;
-            padding-right: 1rem;
-            padding-top: 0.8rem;
-        }
-
-        .golf-hero {
-            border-radius: 20px;
-            padding: 22px 18px 20px 18px;
-        }
-
-        .golf-hero-title {
-            font-size: 1.82rem;
-        }
-
-        .stButton > button {
-            min-height: 50px;
-            font-size: 0.96rem;
-        }
-
-        [data-testid="stMetric"] {
-            padding: 12px 11px;
-        }
-
-        [data-testid="stMetricValue"] {
-            font-size: 1.55rem;
-        }
-    }
-
-    </style>
-    """,
-    unsafe_allow_html=True
+</style>
+""",
+unsafe_allow_html=True
 )
 
 
@@ -346,16 +396,16 @@ st.markdown(
 
 st.markdown(
 """<div class="golf-hero">
-<div class="golf-hero-top">⛳ THE GROUP</div>
+<div class="golf-hero-kicker">⛳ THE GROUP</div>
 <div class="golf-hero-title">Golf Handicaps</div>
 <div class="golf-hero-subtitle">
 Track rounds, compare performances and build an unofficial WHS-based Handicap Index.
 </div>
-<div class="golf-hero-pill">
-GROSS SCORE → ROUND RATING → HANDICAP INDEX
+<div class="golf-flow">
+GROSS SCORE &nbsp;→&nbsp; ROUND RATING &nbsp;→&nbsp; HANDICAP INDEX
 </div>
 </div>""",
-    unsafe_allow_html=True
+unsafe_allow_html=True
 )
 
 
