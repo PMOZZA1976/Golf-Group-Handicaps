@@ -64,6 +64,9 @@ if "selected_course_data" not in st.session_state:
 if "selected_player_entry" not in st.session_state:
     st.session_state.selected_player_entry = None
 
+if "player_menu_open" not in st.session_state:
+    st.session_state.player_menu_open = False
+
 
 # =========================================================
 # COURSE API
@@ -164,10 +167,8 @@ def calculate_9_hole_round_rating(
     handicap_index
 ):
 
-    expected = (
-        estimated_expected_nine(
-            handicap_index
-        )
+    expected = estimated_expected_nine(
+        handicap_index
     )
 
     combined = (
@@ -188,7 +189,7 @@ def calculate_9_hole_round_rating(
 
 
 # =========================================================
-# HANDICAP INDEX
+# HANDICAP INDEX CALCULATION
 # =========================================================
 
 def handicap_calculation(
@@ -202,9 +203,7 @@ def handicap_calculation(
     if count < 3:
         return None, [], ""
 
-    recent = (
-        differentials[-20:]
-    )
+    recent = differentials[-20:]
 
     indexed = list(
         enumerate(
@@ -332,10 +331,8 @@ def get_player_rounds(
     player_name
 ):
 
-    player_name = (
-        valid_player_name(
-            player_name
-        )
+    player_name = valid_player_name(
+        player_name
     )
 
     if player_name is None:
@@ -357,10 +354,8 @@ def get_completed_holes(
     player_name
 ):
 
-    player_rounds = (
-        get_player_rounds(
-            player_name
-        )
+    player_rounds = get_player_rounds(
+        player_name
     )
 
     return sum(
@@ -378,13 +373,11 @@ def get_player_handicap(
     player_name
 ):
 
-    player_rounds = (
-        get_player_rounds(
-            player_name
-        )
+    player_rounds = get_player_rounds(
+        player_name
     )
 
-    completed_holes = sum(
+    holes_completed = sum(
         int(
             r.get(
                 "Holes",
@@ -394,11 +387,13 @@ def get_player_handicap(
         for r in player_rounds
     )
 
-    if completed_holes < 54:
+    if holes_completed < 54:
         return None
 
     completed_differentials = [
-        r["Differential"]
+        r.get(
+            "Differential"
+        )
         for r in player_rounds
         if r.get(
             "Differential"
@@ -429,19 +424,13 @@ def calculate_course_handicap(
 
     return round(
         (
-            handicap_index
-            * float(
-                slope_rating
-            )
+            float(handicap_index)
+            * float(slope_rating)
             / 113
         )
         + (
-            float(
-                course_rating
-            )
-            - float(
-                par
-            )
+            float(course_rating)
+            - float(par)
         )
     )
 
@@ -568,20 +557,38 @@ def get_9_hole_values(
 
     for key in rating_keys:
 
-        if selected_tee.get(key) is not None:
-            rating = selected_tee[key]
+        if selected_tee.get(
+            key
+        ) is not None:
+
+            rating = selected_tee[
+                key
+            ]
+
             break
 
     for key in slope_keys:
 
-        if selected_tee.get(key) is not None:
-            slope = selected_tee[key]
+        if selected_tee.get(
+            key
+        ) is not None:
+
+            slope = selected_tee[
+                key
+            ]
+
             break
 
     for key in par_keys:
 
-        if selected_tee.get(key) is not None:
-            par = selected_tee[key]
+        if selected_tee.get(
+            key
+        ) is not None:
+
+            par = selected_tee[
+                key
+            ]
+
             break
 
     return (
@@ -668,8 +675,7 @@ A very high score on an individual hole may need to
 be reduced before you enter your total for handicap
 purposes.
 
-**If you are establishing your first Handicap
-Index:**
+**If you are building your first Handicap Index:**
 
 The maximum score that counts on any hole is
 **par + 5**.
@@ -687,7 +693,7 @@ that hole.**
 For example, if you receive one handicap stroke on a
 par 4, the maximum that counts is **7**.
 
-If you are unsure, choose **Hole-by-hole scores** and
+If you're unsure, choose **Hole-by-hole scores** and
 the app will make the adjustment automatically where
 the course scorecard information is available.
             """
@@ -705,17 +711,11 @@ st.subheader(
 
 # =========================================================
 # PLAYER SELECTION
-# Mobile-friendly selector that definitely closes
 # =========================================================
 
-if "selected_player_entry" not in st.session_state:
-    st.session_state.selected_player_entry = None
-
-if "player_menu_open" not in st.session_state:
-    st.session_state.player_menu_open = False
-
-
-st.markdown("**Player**")
+st.markdown(
+    "**Player**"
+)
 
 player_button_text = (
     st.session_state.selected_player_entry
@@ -723,14 +723,22 @@ player_button_text = (
     else "Select player"
 )
 
+arrow = (
+    "▲"
+    if st.session_state.player_menu_open
+    else "▼"
+)
+
 if st.button(
-    f"{player_button_text}  ▾",
+    f"{player_button_text}  {arrow}",
     use_container_width=True,
     key="open_player_menu"
 ):
+
     st.session_state.player_menu_open = (
         not st.session_state.player_menu_open
     )
+
     st.rerun()
 
 
@@ -738,10 +746,22 @@ if st.session_state.player_menu_open:
 
     for player_name in PLAYERS:
 
+        selected_marker = (
+            " ✓"
+            if (
+                player_name
+                == st.session_state.selected_player_entry
+            )
+            else ""
+        )
+
         if st.button(
-            player_name,
+            f"{player_name}{selected_marker}",
             use_container_width=True,
-            key=f"choose_player_{player_name}"
+            key=(
+                f"choose_player_"
+                f"{player_name}"
+            )
         ):
 
             st.session_state.selected_player_entry = (
@@ -753,7 +773,10 @@ if st.session_state.player_menu_open:
             st.rerun()
 
 
-player = st.session_state.selected_player_entry
+player = (
+    st.session_state.selected_player_entry
+)
+
 
 # =========================================================
 # DATE / HOLES
@@ -775,32 +798,36 @@ holes_played = st.radio(
 
 
 # =========================================================
-# PLAYER ESTABLISHMENT PROGRESS
+# TOP PLAYER HANDICAP PROGRESS
 # =========================================================
 
 if player is not None:
 
-    completed_holes = (
+    player_completed_holes = (
         get_completed_holes(
             player
         )
     )
 
-    if completed_holes < 54:
+    if player_completed_holes < 54:
 
         st.markdown(
-    "### Building your Handicap"
-)
+            "### Building your Handicap"
+        )
 
-st.write(
-    f"**{completed_holes} of 54 completed holes**"
-)
+        st.write(
+            f"**{player_completed_holes} "
+            f"of 54 completed holes**"
+        )
 
-st.progress(
-    coneted_holes / 54
-)
+        st.progress(
+            min(
+                player_completed_holes / 54,
+                1.0
+            )
+        )
 
-show_54_hole_info()
+        show_54_hole_info()
 
 
 # =========================================================
@@ -822,7 +849,9 @@ clean_search = (
     course_search.strip()
 )
 
-if len(clean_search) >= 3:
+if len(
+    clean_search
+) >= 3:
 
     try:
 
@@ -830,17 +859,17 @@ if len(clean_search) >= 3:
             "Finding matching courses..."
         ):
 
-            results = (
+            search_results = (
                 search_courses(
                     clean_search
                 )
             )
 
         st.session_state.course_results = (
-            results
+            search_results
         )
 
-        if not results:
+        if not search_results:
 
             st.session_state.selected_course_data = (
                 None
@@ -876,25 +905,23 @@ else:
 
 
 # =========================================================
-# MATCHING COURSE SELECTION
+# MATCHING COURSES
 # =========================================================
 
 course_id = None
 
 if st.session_state.course_results:
 
-    labels = []
+    course_labels = []
 
-    for course in (
-        st.session_state.course_results
-    ):
+    for course in st.session_state.course_results:
 
         club = course.get(
             "club_name",
             ""
         )
 
-        course_name = course.get(
+        result_course_name = course.get(
             "course_name",
             ""
         )
@@ -915,47 +942,47 @@ if st.session_state.course_results:
         )
 
         if (
-            course_name
-            and course_name != club
+            result_course_name
+            and result_course_name != club
         ):
 
-            name = (
+            display_name = (
                 f"{club} – "
-                f"{course_name}"
+                f"{result_course_name}"
             )
 
         else:
 
-            name = (
+            display_name = (
                 club
-                or course_name
+                or result_course_name
             )
 
         location_text = ", ".join(
-            x
-            for x in [
+            item
+            for item in [
                 city,
                 country
             ]
-            if x
+            if item
         )
 
         if location_text:
 
-            name = (
-                f"{name} "
+            display_name = (
+                f"{display_name} "
                 f"({location_text})"
             )
 
-        labels.append(
-            name
+        course_labels.append(
+            display_name
         )
 
 
-    selected_label = (
+    selected_course_label = (
         st.selectbox(
             "Matching courses",
-            labels,
+            course_labels,
             index=None,
             placeholder=(
                 "Select the correct course"
@@ -964,22 +991,22 @@ if st.session_state.course_results:
     )
 
 
-    if selected_label is not None:
+    if selected_course_label is not None:
 
-        selected_index = (
-            labels.index(
-                selected_label
+        selected_course_index = (
+            course_labels.index(
+                selected_course_label
             )
         )
 
-        selected_summary = (
+        selected_course_summary = (
             st.session_state.course_results[
-                selected_index
+                selected_course_index
             ]
         )
 
         course_id = (
-            selected_summary.get(
+            selected_course_summary.get(
                 "id"
             )
         )
@@ -992,14 +1019,14 @@ if st.session_state.course_results:
                     "Loading course details..."
                 ):
 
-                    course_data = (
+                    loaded_course_data = (
                         get_course_details(
                             course_id
                         )
                     )
 
                 st.session_state.selected_course_data = (
-                    course_data
+                    loaded_course_data
                 )
 
             except requests.exceptions.RequestException:
@@ -1023,34 +1050,23 @@ course_data = (
 
 if course_data:
 
-    club_name = (
-        course_data.get(
-            "club_name",
-            ""
-        )
+    club_name = course_data.get(
+        "club_name",
+        ""
     )
 
-    course_name = (
-        course_data.get(
-            "course_name",
-            ""
-        )
+    course_name = course_data.get(
+        "course_name",
+        ""
     )
 
-
-    # =====================================================
-    # COURSE / LAYOUT
-    # =====================================================
-
-    course_layout = (
-        st.selectbox(
-            "Course / Layout",
-            [
-                course_name
-                or "Main Course"
-            ],
-            disabled=True
-        )
+    course_layout = st.selectbox(
+        "Course / Layout",
+        [
+            course_name
+            or "Main Course"
+        ],
+        disabled=True
     )
 
 
@@ -1058,18 +1074,14 @@ if course_data:
     # TEES
     # =====================================================
 
-    tees = (
-        course_data.get(
-            "tees",
-            {}
-        )
+    tees = course_data.get(
+        "tees",
+        {}
     )
 
-    male_tees = (
-        tees.get(
-            "male",
-            []
-        )
+    male_tees = tees.get(
+        "male",
+        []
     )
 
     if not male_tees:
@@ -1089,24 +1101,18 @@ if course_data:
             for tee in male_tees
         ]
 
-        selected_tee_name = (
-            st.selectbox(
-                "Tees used",
-                tee_names
-            )
+        selected_tee_name = st.selectbox(
+            "Tees used",
+            tee_names
         )
 
-        tee_index = (
-            tee_names.index(
-                selected_tee_name
-            )
+        tee_index = tee_names.index(
+            selected_tee_name
         )
 
-        selected_tee = (
-            male_tees[
-                tee_index
-            ]
-        )
+        selected_tee = male_tees[
+            tee_index
+        ]
 
         full_course_rating = (
             selected_tee.get(
@@ -1135,33 +1141,29 @@ if course_data:
 
 
         # =================================================
-        # 9 OR 18 HOLE VALUES
+        # 9 / 18 HOLE VALUES
         # =================================================
 
         nine_choice = None
 
         if holes_played == 9:
 
-            nine_choice = (
-                st.radio(
-                    "Which 9 holes?",
-                    [
-                        "Front 9",
-                        "Back 9"
-                    ],
-                    horizontal=True
-                )
+            nine_choice = st.radio(
+                "Which 9 holes?",
+                [
+                    "Front 9",
+                    "Back 9"
+                ],
+                horizontal=True
             )
 
             (
                 course_rating,
                 slope_rating,
-                par
-            ) = (
-                get_9_hole_values(
-                    selected_tee,
-                    nine_choice
-                )
+                course_par
+            ) = get_9_hole_values(
+                selected_tee,
+                nine_choice
             )
 
         else:
@@ -1174,7 +1176,7 @@ if course_data:
                 full_slope_rating
             )
 
-            par = (
+            course_par = (
                 full_par
             )
 
@@ -1187,11 +1189,11 @@ if course_data:
             "#### Course information"
         )
 
-        c1, c2, c3 = (
+        rating_col, slope_col, par_col = (
             st.columns(3)
         )
 
-        c1.metric(
+        rating_col.metric(
             "Course Rating",
             (
                 course_rating
@@ -1200,7 +1202,7 @@ if course_data:
             )
         )
 
-        c2.metric(
+        slope_col.metric(
             "Slope",
             (
                 slope_rating
@@ -1209,18 +1211,18 @@ if course_data:
             )
         )
 
-        c3.metric(
+        par_col.metric(
             "Par",
             (
-                par
-                if par is not None
+                course_par
+                if course_par is not None
                 else "N/A"
             )
         )
 
 
         # =================================================
-        # VALIDATE RATING DATA
+        # CHECK RATING DATA
         # =================================================
 
         if (
@@ -1240,8 +1242,7 @@ if course_data:
                 st.caption(
                     "WHS requires a valid 9-hole "
                     "Course Rating and Slope Rating "
-                    "before a 9-hole score can be "
-                    "used."
+                    "before a 9-hole score can be used."
                 )
 
             else:
@@ -1251,10 +1252,11 @@ if course_data:
                     "is unavailable for these tees."
                 )
 
+
         else:
 
             # =============================================
-            # CURRENT PLAYER HANDICAP
+            # PLAYER'S CURRENT HANDICAP
             # =============================================
 
             existing_handicap = (
@@ -1267,21 +1269,19 @@ if course_data:
 
 
             # =============================================
-            # SCORE ENTRY METHOD
+            # ENTRY METHOD
             # =============================================
 
             st.markdown(
                 "### Enter your score"
             )
 
-            entry_method = (
-                st.radio(
-                    "Entry method",
-                    [
-                        "Total gross score",
-                        "Hole-by-hole scores"
-                    ]
-                )
+            entry_method = st.radio(
+                "Entry method",
+                [
+                    "Total gross score",
+                    "Hole-by-hole scores"
+                ]
             )
 
 
@@ -1289,11 +1289,7 @@ if course_data:
             # TOTAL GROSS SCORE
             # =============================================
 
-            if (
-                entry_method
-                ==
-                "Total gross score"
-            ):
+            if entry_method == "Total gross score":
 
                 show_total_score_info()
 
@@ -1309,20 +1305,18 @@ if course_data:
                     else 20
                 )
 
-                maximum_score = (
+                maximum_total_score = (
                     200
                     if holes_played == 18
                     else 100
                 )
 
-                handicap_score = (
-                    st.number_input(
-                        "Gross score for handicap purposes",
-                        min_value=minimum_score,
-                        max_value=maximum_score,
-                        value=default_score,
-                        step=1
-                    )
+                handicap_score = st.number_input(
+                    "Gross score for handicap purposes",
+                    min_value=minimum_score,
+                    max_value=maximum_total_score,
+                    value=default_score,
+                    step=1
                 )
 
                 round_rating = None
@@ -1330,7 +1324,7 @@ if course_data:
 
 
                 # =========================================
-                # CALCULATE ROUND RATING
+                # CALCULATE RATING
                 # =========================================
 
                 if holes_played == 18:
@@ -1345,7 +1339,7 @@ if course_data:
 
                 else:
 
-                    played_nine = (
+                    played_nine_differential = (
                         calculate_9_hole_differential(
                             handicap_score,
                             course_rating,
@@ -1360,14 +1354,14 @@ if course_data:
                             expected_nine
                         ) = (
                             calculate_9_hole_round_rating(
-                                played_nine,
+                                played_nine_differential,
                                 existing_handicap
                             )
                         )
 
 
                 # =========================================
-                # ROUND RATING DISPLAY
+                # RATING DISPLAY
                 # =========================================
 
                 if round_rating is not None:
@@ -1407,16 +1401,15 @@ may differ slightly.
 
                     st.info(
                         "This 9-hole score will count "
-                        "towards your **54 completed "
-                        "holes**. A full Round Rating "
-                        "cannot yet be created because "
-                        "you do not have an established "
-                        "Handicap Index."
+                        "towards your **54 completed holes**. "
+                        "A full Round Rating cannot yet be "
+                        "created because you don't have an "
+                        "established Handicap Index."
                     )
 
 
                 # =========================================
-                # SAVE TOTAL ROUND
+                # SAVE TOTAL SCORE ROUND
                 # =========================================
 
                 if st.button(
@@ -1463,7 +1456,7 @@ may differ slightly.
                                     slope_rating,
 
                                 "Par":
-                                    par,
+                                    course_par,
 
                                 "Gross Score":
                                     handicap_score,
@@ -1477,7 +1470,8 @@ may differ slightly.
                                             round_rating,
                                             1
                                         )
-                                        if round_rating is not None
+                                        if round_rating
+                                        is not None
                                         else None
                                     ),
 
@@ -1497,7 +1491,7 @@ may differ slightly.
 
 
             # =============================================
-            # HOLE-BY-HOLE SCORE ENTRY
+            # HOLE-BY-HOLE
             # =============================================
 
             else:
@@ -1528,7 +1522,7 @@ may differ slightly.
 
 
                 # =========================================
-                # CHECK SCORECARD DATA
+                # CHECK HOLE DATA
                 # =========================================
 
                 if (
@@ -1570,16 +1564,16 @@ may differ slightly.
                             )
                         )
 
-                        h1, h2 = (
+                        hi_col, ch_col = (
                             st.columns(2)
                         )
 
-                        h1.metric(
+                        hi_col.metric(
                             "Handicap Index",
                             f"{existing_handicap:.1f}"
                         )
 
-                        h2.metric(
+                        ch_col.metric(
                             "Course Handicap",
                             course_handicap
                         )
@@ -1605,7 +1599,8 @@ may differ slightly.
                             i + 1
                             if (
                                 holes_played == 18
-                                or nine_choice == "Front 9"
+                                or nine_choice
+                                == "Front 9"
                             )
                             else i + 10
                         )
@@ -1635,7 +1630,7 @@ may differ slightly.
 
 
                         # =================================
-                        # WHS MAXIMUM HOLE SCORE
+                        # MAXIMUM SCORE FOR HANDICAP
                         # =================================
 
                         if (
@@ -1672,7 +1667,7 @@ may differ slightly.
                         # SCORE INPUT
                         # =================================
 
-                        col1, col2 = (
+                        hole_info_col, score_col = (
                             st.columns(
                                 [
                                     1,
@@ -1681,65 +1676,62 @@ may differ slightly.
                             )
                         )
 
-                        with col1:
+                        with hole_info_col:
 
                             st.write(
-                                f"**Hole "
-                                f"{hole_number}**  \n"
+                                f"**Hole {hole_number}**  \n"
                                 f"Par {hole_par} • "
                                 f"SI {stroke_index}"
                             )
 
-                        with col2:
+                        with score_col:
 
-                            score = (
-                                st.number_input(
-                                    f"Hole "
-                                    f"{hole_number}",
-                                    min_value=1,
-                                    max_value=20,
-                                    value=int(
-                                        hole_par
-                                    ),
-                                    step=1,
-                                    key=(
-                                        f"score_"
-                                        f"{course_id}_"
-                                        f"{selected_tee_name}_"
-                                        f"{holes_played}_"
-                                        f"{nine_choice}_"
-                                        f"{hole_number}"
-                                    ),
-                                    label_visibility=(
-                                        "collapsed"
-                                    )
-                                )
+                            hole_score = st.number_input(
+                                f"Hole {hole_number}",
+                                min_value=1,
+                                max_value=20,
+                                value=int(
+                                    hole_par
+                                ),
+                                step=1,
+                                key=(
+                                    f"score_"
+                                    f"{course_id}_"
+                                    f"{selected_tee_name}_"
+                                    f"{holes_played}_"
+                                    f"{nine_choice}_"
+                                    f"{hole_number}"
+                                ),
+                                label_visibility="collapsed"
                             )
 
                         raw_scores.append(
                             int(
-                                score
+                                hole_score
                             )
                         )
 
-                        adjusted = min(
+                        adjusted_hole_score = min(
                             int(
-                                score
+                                hole_score
                             ),
                             maximum_hole_score
                         )
 
                         adjusted_scores.append(
-                            adjusted
+                            adjusted_hole_score
                         )
 
-                        if adjusted < score:
+                        if (
+                            adjusted_hole_score
+                            < hole_score
+                        ):
 
                             adjustment_details.append(
                                 (
                                     hole_number,
-                                    score,
-                                    adjusted
+                                    int(hole_score),
+                                    adjusted_hole_score
                                 )
                             )
 
@@ -1772,7 +1764,7 @@ may differ slightly.
 
                     else:
 
-                        played_nine = (
+                        played_nine_differential = (
                             calculate_9_hole_differential(
                                 adjusted_score,
                                 course_rating,
@@ -1787,7 +1779,7 @@ may differ slightly.
                                 expected_nine
                             ) = (
                                 calculate_9_hole_round_rating(
-                                    played_nine,
+                                    played_nine_differential,
                                     existing_handicap
                                 )
                             )
@@ -1801,18 +1793,18 @@ may differ slightly.
                         "### Round summary"
                     )
 
-                    s1, s2 = (
+                    gross_col, rating_col = (
                         st.columns(2)
                     )
 
-                    s1.metric(
+                    gross_col.metric(
                         "Gross score",
                         gross_score
                     )
 
                     if round_rating is not None:
 
-                        s2.metric(
+                        rating_col.metric(
                             "Round Rating",
                             f"{round_rating:.1f}"
                         )
@@ -1821,13 +1813,16 @@ may differ slightly.
 
                     else:
 
-                        s2.metric(
+                        rating_col.metric(
                             "Round Rating",
                             "Pending"
                         )
 
 
-                    if adjusted_score != gross_score:
+                    if (
+                        adjusted_score
+                        != gross_score
+                    ):
 
                         st.info(
                             "Score used for handicap "
@@ -1840,21 +1835,21 @@ may differ slightly.
                         ):
 
                             for (
-                                hole_number,
-                                original,
-                                adjusted
+                                adjusted_hole_number,
+                                original_score,
+                                new_score
                             ) in adjustment_details:
 
                                 st.write(
                                     f"Hole "
-                                    f"{hole_number}: "
-                                    f"{original} → "
-                                    f"{adjusted}"
+                                    f"{adjusted_hole_number}: "
+                                    f"{original_score} → "
+                                    f"{new_score}"
                                 )
 
 
                     # =====================================
-                    # SAVE HOLE-BY-HOLE ROUND
+                    # SAVE HOLE-BY-HOLE
                     # =====================================
 
                     if st.button(
@@ -1901,7 +1896,7 @@ may differ slightly.
                                         slope_rating,
 
                                     "Par":
-                                        par,
+                                        course_par,
 
                                     "Gross Score":
                                         gross_score,
@@ -1915,7 +1910,8 @@ may differ slightly.
                                                 round_rating,
                                                 1
                                             )
-                                            if round_rating is not None
+                                            if round_rating
+                                            is not None
                                             else None
                                         ),
 
@@ -1955,34 +1951,31 @@ if not st.session_state.rounds:
 
 else:
 
-    df = pd.DataFrame(
+    rounds_df = pd.DataFrame(
         st.session_state.rounds
     )
 
     players_with_scores = [
-        p
-        for p in PLAYERS
-        if p in df[
-            "Player"
-        ].unique()
+        player_name
+        for player_name in PLAYERS
+        if player_name
+        in rounds_df["Player"].unique()
     ]
 
 
     # =====================================================
-    # PLAYER RECORD SELECTOR
+    # VIEW PLAYER
     # =====================================================
 
-    selected_player = (
-        st.selectbox(
-            "View player",
-            players_with_scores
-        )
+    record_player = st.selectbox(
+        "View player",
+        players_with_scores
     )
 
-    player_df = (
-        df[
-            df["Player"]
-            == selected_player
+    player_record_df = (
+        rounds_df[
+            rounds_df["Player"]
+            == record_player
         ]
         .sort_values(
             "Date"
@@ -1992,31 +1985,34 @@ else:
         )
     )
 
-    completed_holes = int(
-        player_df[
+
+    # IMPORTANT:
+    # Separate variable from the top progress section.
+    record_completed_holes = int(
+        player_record_df[
             "Holes"
         ].sum()
     )
 
 
     # =====================================================
-    # INITIAL HANDICAP STATUS
+    # HANDICAP STATUS
     # =====================================================
 
-    if completed_holes < 54:
+    if record_completed_holes < 54:
 
         st.markdown(
-            "### Building your handicap"
+            "### Building your Handicap"
         )
 
         st.write(
-            f"**{completed_holes} of "
-            f"54 completed holes**"
+            f"**{record_completed_holes} "
+            f"of 54 completed holes**"
         )
 
         st.progress(
             min(
-                completed_holes / 54,
+                record_completed_holes / 54,
                 1.0
             )
         )
@@ -2026,10 +2022,9 @@ else:
 
     else:
 
-        differentials = [
+        record_differentials = [
             value
-            for value
-            in player_df[
+            for value in player_record_df[
                 "Differential"
             ].tolist()
             if pd.notna(
@@ -2038,17 +2033,15 @@ else:
         ]
 
         (
-            handicap_index,
-            counting_indexes,
-            explanation
-        ) = (
-            handicap_calculation(
-                differentials
-            )
+            record_handicap_index,
+            record_counting_indexes,
+            record_explanation
+        ) = handicap_calculation(
+            record_differentials
         )
 
 
-        if handicap_index is None:
+        if record_handicap_index is None:
 
             st.warning(
                 "54 completed holes have been "
@@ -2066,12 +2059,11 @@ else:
                 "unofficial tracker."
             )
 
-
         else:
 
             st.metric(
                 "Handicap Index",
-                f"{handicap_index:.1f}"
+                f"{record_handicap_index:.1f}"
             )
 
             st.caption(
@@ -2079,7 +2071,7 @@ else:
             )
 
             st.write(
-                f"**{explanation}**"
+                f"**{record_explanation}**"
             )
 
 
@@ -2092,7 +2084,7 @@ else:
     )
 
     display_df = (
-        player_df.copy()
+        player_record_df.copy()
     )
 
     if (
@@ -2118,9 +2110,10 @@ else:
     ]
 
     available_columns = [
-        col
-        for col in display_columns
-        if col in display_df.columns
+        column
+        for column in display_columns
+        if column
+        in display_df.columns
     ]
 
     display_df = (
