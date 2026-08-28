@@ -1349,7 +1349,7 @@ the course scorecard information is available.
 # ADD ROUND
 # =========================================================
 
-st.subheader("➕ Add Round")
+st.subheader("Add Round")
 
 
 # =========================================================
@@ -2486,7 +2486,7 @@ if course_data:
 st.divider()
 
 st.subheader(
-    "🏌️ Player Handicaps"
+    "Player Handicaps"
 )
 
 if not all_rounds:
@@ -2654,7 +2654,7 @@ else:
 st.divider()
 
 with st.expander(
-    "🔐 Admin tools"
+    "Admin Area"
 ):
 
     if not st.session_state.admin_authenticated:
