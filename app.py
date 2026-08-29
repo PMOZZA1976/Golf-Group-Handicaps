@@ -555,15 +555,11 @@ NINE_HOLE_RATINGS = [
 # ERRORS
 # =========================================================
 
-class DuplicateRoundError(
-    Exception
-):
+class DuplicateRoundError(Exception):
     pass
 
 
-class RoundValidationError(
-    Exception
-):
+class RoundValidationError(Exception):
     pass
 
 
@@ -617,17 +613,11 @@ DEFAULT_SESSION_VALUES = {
 }
 
 
-for key, value in (
-    DEFAULT_SESSION_VALUES.items()
-):
+for key, value in DEFAULT_SESSION_VALUES.items():
 
-    if key not in (
-        st.session_state
-    ):
+    if key not in st.session_state:
 
-        st.session_state[
-            key
-        ] = value
+        st.session_state[key] = value
 
 
 # =========================================================
@@ -686,8 +676,7 @@ def save_round_to_database(
         f"{SUPABASE_URL}/rest/v1/rounds",
         headers={
             **SUPABASE_HEADERS,
-            "Prefer":
-                "return=minimal"
+            "Prefer": "return=minimal"
         },
         json=round_data,
         timeout=15
@@ -695,22 +684,13 @@ def save_round_to_database(
 
     if not response.ok:
 
-        text = (
-            response.text.lower()
-        )
+        text = response.text.lower()
 
         if (
-            "already been submitted"
-            in text
-
-            or "duplicate"
-            in text
-
-            or "unique constraint"
-            in text
-
-            or "duplicate key"
-            in text
+            "already been submitted" in text
+            or "duplicate" in text
+            or "unique constraint" in text
+            or "duplicate key" in text
         ):
 
             raise DuplicateRoundError()
@@ -723,19 +703,16 @@ def delete_round_from_database(
 ):
 
     if round_id is None:
-
         return
 
     response = requests.delete(
         f"{SUPABASE_URL}/rest/v1/rounds",
         headers={
             **SUPABASE_HEADERS,
-            "Prefer":
-                "return=minimal"
+            "Prefer": "return=minimal"
         },
         params={
-            "id":
-                f"eq.{round_id}"
+            "id": f"eq.{round_id}"
         },
         timeout=15
     )
@@ -781,12 +758,10 @@ def delete_rounds_from_database(
             f"{SUPABASE_URL}/rest/v1/rounds",
             headers={
                 **SUPABASE_HEADERS,
-                "Prefer":
-                    "return=minimal"
+                "Prefer": "return=minimal"
             },
             params={
-                "id":
-                    f"in.({id_list})"
+                "id": f"in.({id_list})"
             },
             timeout=30
         )
@@ -914,7 +889,6 @@ def find_identical_rounds_in_database(
             same_course = (
                 new_course_name
                 == candidate_course
-
                 and new_layout
                 == candidate_layout
             )
@@ -956,14 +930,10 @@ try:
         load_rounds_from_database()
     )
 
-except (
-    requests.exceptions
-    .RequestException
-) as error:
+except requests.exceptions.RequestException as error:
 
     st.error(
-        "Unable to connect to "
-        "the handicap database."
+        "Unable to connect to the handicap database."
     )
 
     st.caption(
@@ -974,8 +944,7 @@ except (
 
 
 PLAYER_ID_BY_NAME = {
-    row.get("name"):
-        row.get("id")
+    row.get("name"): row.get("id")
     for row in database_players
     if (
         row.get("name")
@@ -985,8 +954,7 @@ PLAYER_ID_BY_NAME = {
 
 
 PLAYER_NAME_BY_ID = {
-    row.get("id"):
-        row.get("name")
+    row.get("id"): row.get("name")
     for row in database_players
     if (
         row.get("name")
@@ -1026,9 +994,7 @@ for row in database_rounds:
 
     player_name = (
         PLAYER_NAME_BY_ID.get(
-            row.get(
-                "player_id"
-            )
+            row.get("player_id")
         )
     )
 
@@ -1036,9 +1002,7 @@ for row in database_rounds:
         continue
 
     date_value = (
-        row.get(
-            "date_played"
-        )
+        row.get("date_played")
     )
 
     try:
@@ -1070,75 +1034,49 @@ for row in database_rounds:
             row.get("nine"),
 
         "Golf Course":
-            row.get(
-                "golf_course"
-            ),
+            row.get("golf_course"),
 
         "Course / Layout":
-            row.get(
-                "course_layout"
-            ),
+            row.get("course_layout"),
 
         "Course API ID":
-            row.get(
-                "course_api_id"
-            ),
+            row.get("course_api_id"),
 
         "Tees":
             row.get("tees"),
 
         "Course Rating":
-            row.get(
-                "course_rating"
-            ),
+            row.get("course_rating"),
 
         "Slope Rating":
-            row.get(
-                "slope_rating"
-            ),
+            row.get("slope_rating"),
 
         "Rating Status":
-            row.get(
-                "rating_status"
-            ),
+            row.get("rating_status"),
 
         "Par":
             row.get("par"),
 
         "Gross Score":
-            row.get(
-                "gross_score"
-            ),
+            row.get("gross_score"),
 
         "Adjusted Score":
-            row.get(
-                "adjusted_score"
-            ),
+            row.get("adjusted_score"),
 
         "Differential":
-            row.get(
-                "round_rating"
-            ),
+            row.get("round_rating"),
 
         "Entry Method":
-            row.get(
-                "entry_method"
-            ),
+            row.get("entry_method"),
 
         "Hole Scores":
-            row.get(
-                "hole_scores"
-            ),
+            row.get("hole_scores"),
 
         "Expected Nine":
-            row.get(
-                "expected_nine"
-            ),
+            row.get("expected_nine"),
 
         "Created At":
-            row.get(
-                "created_at"
-            )
+            row.get("created_at")
     })
 
 
@@ -1156,11 +1094,9 @@ def search_courses(
 
     response = requests.get(
         f"{GOLF_API_BASE}/search",
-        headers=
-            GOLF_HEADERS,
+        headers=GOLF_HEADERS,
         params={
-            "search_query":
-                search_text
+            "search_query": search_text
         },
         timeout=15
     )
@@ -1184,24 +1120,18 @@ def get_course_details(
 ):
 
     response = requests.get(
-        f"{GOLF_API_BASE}"
-        f"/courses/{course_id}",
-        headers=
-            GOLF_HEADERS,
+        f"{GOLF_API_BASE}/courses/{course_id}",
+        headers=GOLF_HEADERS,
         timeout=15
     )
 
     response.raise_for_status()
 
-    data = (
-        response.json()
-    )
+    data = response.json()
 
-    return (
-        data.get(
-            "course",
-            data
-        )
+    return data.get(
+        "course",
+        data
     )
 
 
@@ -1473,9 +1403,7 @@ def calculate_round_rating(
         )
     )
 
-    expected_nine = (
-        None
-    )
+    expected_nine = None
 
     if holes_played == 18:
 
@@ -1487,9 +1415,7 @@ def calculate_round_rating(
 
     if (
         holes_played == 9
-
-        and existing_handicap
-        is not None
+        and existing_handicap is not None
     ):
 
         expected_nine = (
@@ -1501,10 +1427,8 @@ def calculate_round_rating(
         return (
             played_differential,
             expected_nine,
-            (
-                played_differential
-                + expected_nine
-            )
+            played_differential
+            + expected_nine
         )
 
     return (
@@ -1527,9 +1451,7 @@ def handicap_calculation(
         )
     ]
 
-    count = len(
-        clean
-    )
+    count = len(clean)
 
     if count < 3:
 
@@ -1539,16 +1461,13 @@ def handicap_calculation(
             ""
         )
 
-    recent = (
-        clean[-20:]
-    )
+    recent = clean[-20:]
 
     sorted_diffs = sorted(
         enumerate(
             recent
         ),
-        key=lambda x:
-            x[1]
+        key=lambda x: x[1]
     )
 
     adjustment = 0.0
@@ -1579,35 +1498,19 @@ def handicap_calculation(
 
         number_used = 2
 
-    elif (
-        9
-        <= count
-        <= 11
-    ):
+    elif 9 <= count <= 11:
 
         number_used = 3
 
-    elif (
-        12
-        <= count
-        <= 14
-    ):
+    elif 12 <= count <= 14:
 
         number_used = 4
 
-    elif (
-        15
-        <= count
-        <= 16
-    ):
+    elif 15 <= count <= 16:
 
         number_used = 5
 
-    elif (
-        17
-        <= count
-        <= 18
-    ):
+    elif 17 <= count <= 18:
 
         number_used = 6
 
@@ -1628,8 +1531,7 @@ def handicap_calculation(
     average = (
         sum(
             item[1]
-            for item
-            in counting
+            for item in counting
         )
         / number_used
     )
@@ -1641,10 +1543,8 @@ def handicap_calculation(
     )
 
     explanation = (
-        f"Best "
-        f"{number_used} "
-        f"of "
-        f"{min(count, 20)}"
+        f"Best {number_used} "
+        f"of {min(count, 20)}"
     )
 
     if adjustment:
@@ -1661,8 +1561,7 @@ def handicap_calculation(
         ),
         [
             item[0]
-            for item
-            in counting
+            for item in counting
         ],
         explanation
     )
@@ -1673,9 +1572,7 @@ def raw_nine_differential(
 ):
 
     if int(
-        round_item.get(
-            "Holes"
-        )
+        round_item.get("Holes")
         or 0
     ) != 9:
 
@@ -1733,9 +1630,7 @@ def eighteen_differential(
 ):
 
     if int(
-        round_item.get(
-            "Holes"
-        )
+        round_item.get("Holes")
         or 0
     ) != 18:
 
@@ -1816,25 +1711,18 @@ def build_effective_round_ratings(
 
     total_holes = sum(
         int(
-            r.get(
-                "Holes"
-            )
+            r.get("Holes")
             or 0
         )
-        for r
-        in player_rounds
+        for r in player_rounds
     )
 
     effective = []
 
-    for round_item in (
-        player_rounds
-    ):
+    for round_item in player_rounds:
 
         holes = int(
-            round_item.get(
-                "Holes"
-            )
+            round_item.get("Holes")
             or 0
         )
 
@@ -1848,7 +1736,6 @@ def build_effective_round_ratings(
 
         elif (
             holes == 9
-
             and round_item.get(
                 "Differential"
             )
@@ -1886,14 +1773,10 @@ def build_effective_round_ratings(
 
     seed_diffs = []
 
-    for round_item in (
-        player_rounds
-    ):
+    for round_item in player_rounds:
 
         holes = int(
-            round_item.get(
-                "Holes"
-            )
+            round_item.get("Holes")
             or 0
         )
 
@@ -1937,22 +1820,16 @@ def build_effective_round_ratings(
 
         return effective
 
-    working_hi = (
-        seed_hi
-    )
+    working_hi = seed_hi
 
     for _ in range(8):
 
         candidate = []
 
-        for round_item in (
-            player_rounds
-        ):
+        for round_item in player_rounds:
 
             holes = int(
-                round_item.get(
-                    "Holes"
-                )
+                round_item.get("Holes")
                 or 0
             )
 
@@ -2034,26 +1911,17 @@ def build_effective_round_ratings(
             - working_hi
         ) < 0.05:
 
-            working_hi = (
-                new_hi
-            )
-
+            working_hi = new_hi
             break
 
-        working_hi = (
-            new_hi
-        )
+        working_hi = new_hi
 
     final_effective = []
 
-    for round_item in (
-        player_rounds
-    ):
+    for round_item in player_rounds:
 
         holes = int(
-            round_item.get(
-                "Holes"
-            )
+            round_item.get("Holes")
             or 0
         )
 
@@ -2160,8 +2028,7 @@ def get_player_rounds(
     return sorted(
         [
             r
-            for r
-            in all_rounds
+            for r in all_rounds
             if (
                 r.get(
                     "Player"
@@ -2169,8 +2036,7 @@ def get_player_rounds(
                 == player_name
             )
         ],
-        key=
-            round_sort_key
+        key=round_sort_key
     )
 
 
@@ -2180,13 +2046,10 @@ def get_completed_holes(
 
     return sum(
         int(
-            r.get(
-                "Holes"
-            )
+            r.get("Holes")
             or 0
         )
-        for r
-        in get_player_rounds(
+        for r in get_player_rounds(
             player_name
         )
     )
@@ -2207,13 +2070,10 @@ def get_player_handicap(
 
     if sum(
         int(
-            r.get(
-                "Holes"
-            )
+            r.get("Holes")
             or 0
         )
-        for r
-        in player_rounds
+        for r in player_rounds
     ) < 54:
 
         return None
@@ -2231,8 +2091,7 @@ def get_player_handicap(
     ) = handicap_calculation(
         [
             x
-            for x
-            in effective
+            for x in effective
             if x is not None
         ]
     )
@@ -2326,9 +2185,7 @@ def handicap_strokes_on_hole(
         % 18
     )
 
-    strokes = (
-        full_cycles
-    )
+    strokes = full_cycles
 
     if (
         stroke_index
@@ -2390,8 +2247,7 @@ def build_course_labels(
 
     location_text = ", ".join(
         item
-        for item
-        in [
+        for item in [
             location.get(
                 "city",
                 ""
@@ -2413,9 +2269,7 @@ def build_course_labels(
 
     else:
 
-        full = (
-            short
-        )
+        full = short
 
     return (
         short,
@@ -2483,9 +2337,7 @@ def find_known_nine_rating(
         )
     )
 
-    for item in (
-        NINE_HOLE_RATINGS
-    ):
+    for item in NINE_HOLE_RATINGS:
 
         if (
             item["nine"]
@@ -2505,9 +2357,7 @@ def find_known_nine_rating(
             alias
             in course_text
             for alias
-            in item[
-                "aliases"
-            ]
+            in item["aliases"]
         ):
 
             return item
@@ -2522,6 +2372,7 @@ def determine_nine_rating_status(
 ):
 
     if known_rating is None:
+
         return "Manual"
 
     if (
@@ -2595,15 +2446,9 @@ def get_hole_number(
 ):
 
     return (
-        hole.get(
-            "hole"
-        )
-        or hole.get(
-            "hole_number"
-        )
-        or hole.get(
-            "number"
-        )
+        hole.get("hole")
+        or hole.get("hole_number")
+        or hole.get("number")
         or fallback
     )
 
@@ -2613,12 +2458,8 @@ def get_hole_par(
 ):
 
     value = (
-        hole.get(
-            "par"
-        )
-        or hole.get(
-            "par_value"
-        )
+        hole.get("par")
+        or hole.get("par_value")
     )
 
     try:
@@ -2676,14 +2517,12 @@ def get_api_nine_par(
         get_hole_par(
             hole
         )
-        for hole
-        in selected_holes
+        for hole in selected_holes
     ]
 
     if any(
         par is None
-        for par
-        in pars
+        for par in pars
     ):
 
         return None
@@ -2876,14 +2715,12 @@ def show_save_controls(
 ):
 
     already_saved = (
-        st.session_state
-        .last_saved_round_fingerprint
+        st.session_state.last_saved_round_fingerprint
         == fingerprint
     )
 
     duplicate_confirmation_pending = (
-        st.session_state
-        .pending_duplicate_fingerprint
+        st.session_state.pending_duplicate_fingerprint
         == fingerprint
     )
 
@@ -2905,8 +2742,7 @@ def show_save_controls(
                 "Save as another round",
                 use_container_width=True,
                 type="primary",
-                key=
-                    confirm_key
+                key=confirm_key
             ):
 
                 try:
@@ -2926,10 +2762,7 @@ def show_save_controls(
                         "constraint will need to be adjusted."
                     )
 
-                except (
-                    requests.exceptions
-                    .RequestException
-                ) as error:
+                except requests.exceptions.RequestException as error:
 
                     st.error(
                         "The round could not be saved."
@@ -2944,8 +2777,7 @@ def show_save_controls(
             if st.button(
                 "Cancel",
                 use_container_width=True,
-                key=
-                    cancel_key
+                key=cancel_key
             ):
 
                 st.session_state.pending_duplicate_fingerprint = (
@@ -2960,10 +2792,8 @@ def show_save_controls(
         "Save round",
         use_container_width=True,
         type="primary",
-        disabled=
-            already_saved,
-        key=
-            save_key
+        disabled=already_saved,
+        key=save_key
     ):
 
         try:
@@ -2996,10 +2826,7 @@ def show_save_controls(
                 "This round appears to have already been saved."
             )
 
-        except (
-            requests.exceptions
-            .RequestException
-        ) as error:
+        except requests.exceptions.RequestException as error:
 
             st.error(
                 "The round could not be saved."
@@ -3017,8 +2844,7 @@ def show_save_controls(
 def show_saved_round_card():
 
     saved = (
-        st.session_state
-        .saved_round_summary
+        st.session_state.saved_round_summary
     )
 
     if not saved:
@@ -3037,9 +2863,7 @@ def show_saved_round_card():
 
     else:
 
-        rr = (
-            "Pending"
-        )
+        rr = "Pending"
 
     st.success(
         f"Round saved — "
@@ -3054,41 +2878,24 @@ def show_saved_round_card():
     if st.button(
         "Enter another round",
         use_container_width=True,
-        key=
-            "clear_saved_round_card"
+        key="clear_saved_round_card"
     ):
 
-        st.session_state.saved_round_summary = (
-            None
-        )
+        st.session_state.saved_round_summary = None
 
-        st.session_state.last_saved_round_fingerprint = (
-            None
-        )
+        st.session_state.last_saved_round_fingerprint = None
 
-        st.session_state.pending_duplicate_fingerprint = (
-            None
-        )
+        st.session_state.pending_duplicate_fingerprint = None
 
-        st.session_state.selected_course_id = (
-            None
-        )
+        st.session_state.selected_course_id = None
 
-        st.session_state.selected_course_label = (
-            None
-        )
+        st.session_state.selected_course_label = None
 
-        st.session_state.selected_course_short_label = (
-            None
-        )
+        st.session_state.selected_course_short_label = None
 
-        st.session_state.selected_course_data = (
-            None
-        )
+        st.session_state.selected_course_data = None
 
-        st.session_state.course_menu_open = (
-            False
-        )
+        st.session_state.course_menu_open = False
 
         st.rerun()
 
@@ -3114,12 +2921,8 @@ st.markdown(
 
 
 player_button_text = (
-    st.session_state
-    .selected_player_entry
-    if (
-        st.session_state
-        .selected_player_entry
-    )
+    st.session_state.selected_player_entry
+    if st.session_state.selected_player_entry
     else "Select player"
 )
 
@@ -3130,34 +2933,24 @@ if st.button(
         f"{'▲' if st.session_state.player_menu_open else '▼'}"
     ),
     use_container_width=True,
-    key=
-        "open_player_menu"
+    key="open_player_menu"
 ):
 
     st.session_state.player_menu_open = (
-        not (
-            st.session_state
-            .player_menu_open
-        )
+        not st.session_state.player_menu_open
     )
 
     st.rerun()
 
 
-if (
-    st.session_state
-    .player_menu_open
-):
+if st.session_state.player_menu_open:
 
-    for player_name in (
-        AVAILABLE_PLAYERS
-    ):
+    for player_name in AVAILABLE_PLAYERS:
 
         if st.button(
             player_name,
             use_container_width=True,
-            key=
-                f"choose_player_{player_name}"
+            key=f"choose_player_{player_name}"
         ):
 
             st.session_state.selected_player_entry = (
@@ -3168,35 +2961,25 @@ if (
                 player_name
             )
 
-            st.session_state.player_menu_open = (
-                False
-            )
+            st.session_state.player_menu_open = False
 
-            st.session_state.saved_round_summary = (
-                None
-            )
+            st.session_state.saved_round_summary = None
 
-            st.session_state.last_saved_round_fingerprint = (
-                None
-            )
+            st.session_state.last_saved_round_fingerprint = None
 
-            st.session_state.pending_duplicate_fingerprint = (
-                None
-            )
+            st.session_state.pending_duplicate_fingerprint = None
 
             st.rerun()
 
 
 player = (
-    st.session_state
-    .selected_player_entry
+    st.session_state.selected_player_entry
 )
 
 
 date_played = st.date_input(
     "Date played",
-    value=
-        date.today()
+    value=date.today()
 )
 
 
@@ -3212,10 +2995,7 @@ holes_label = st.radio(
 
 holes_played = (
     18
-    if (
-        holes_label
-        == "18 holes"
-    )
+    if holes_label == "18 holes"
     else 9
 )
 
@@ -3228,10 +3008,7 @@ if player:
         )
     )
 
-    if (
-        player_completed_holes
-        < 54
-    ):
+    if player_completed_holes < 54:
 
         st.markdown(
             "### Building your Handicap"
@@ -3263,15 +3040,9 @@ st.markdown(
 
 
 course_button_text = (
-    st.session_state
-    .selected_course_short_label
-    if (
-        st.session_state
-        .selected_course_short_label
-    )
-    else (
-        "Select golf course"
-    )
+    st.session_state.selected_course_short_label
+    if st.session_state.selected_course_short_label
+    else "Select golf course"
 )
 
 
@@ -3281,41 +3052,30 @@ if st.button(
         f"{'▲' if st.session_state.course_menu_open else '▼'}"
     ),
     use_container_width=True,
-    key=
-        "open_course_menu"
+    key="open_course_menu"
 ):
 
     st.session_state.course_menu_open = (
-        not (
-            st.session_state
-            .course_menu_open
-        )
+        not st.session_state.course_menu_open
     )
 
     st.rerun()
 
 
-if (
-    st.session_state
-    .course_menu_open
-):
+if st.session_state.course_menu_open:
 
     course_search = (
         st.text_input(
             "Search golf course",
             placeholder=
                 "Start typing, e.g. Brocton Hall",
-            key=
-                "course_search_input"
+            key="course_search_input"
         )
     )
 
-    if (
-        len(
-            course_search.strip()
-        )
-        < 3
-    ):
+    if len(
+        course_search.strip()
+    ) < 3:
 
         st.caption(
             "Type at least 3 letters."
@@ -3339,9 +3099,7 @@ if (
 
             else:
 
-                for result in (
-                    search_results[:10]
-                ):
+                for result in search_results[:10]:
 
                     (
                         short_label,
@@ -3351,14 +3109,11 @@ if (
                     )
 
                     result_id = (
-                        result.get(
-                            "id"
-                        )
+                        result.get("id")
                     )
 
                     if (
                         result_id
-
                         and st.button(
                             full_label,
                             use_container_width=True,
@@ -3389,28 +3144,17 @@ if (
                             loaded
                         )
 
-                        st.session_state.course_menu_open = (
-                            False
-                        )
+                        st.session_state.course_menu_open = False
 
-                        st.session_state.saved_round_summary = (
-                            None
-                        )
+                        st.session_state.saved_round_summary = None
 
-                        st.session_state.last_saved_round_fingerprint = (
-                            None
-                        )
+                        st.session_state.last_saved_round_fingerprint = None
 
-                        st.session_state.pending_duplicate_fingerprint = (
-                            None
-                        )
+                        st.session_state.pending_duplicate_fingerprint = None
 
                         st.rerun()
 
-        except (
-            requests.exceptions
-            .RequestException
-        ) as error:
+        except requests.exceptions.RequestException as error:
 
             st.error(
                 "Unable to search the golf course database."
@@ -3422,14 +3166,12 @@ if (
 
 
 course_data = (
-    st.session_state
-    .selected_course_data
+    st.session_state.selected_course_data
 )
 
 
 course_id = (
-    st.session_state
-    .selected_course_id
+    st.session_state.selected_course_id
 )
 
 
@@ -3486,8 +3228,7 @@ if course_data:
                 "tee_name",
                 "Unnamed tee"
             )
-            for tee
-            in male_tees
+            for tee in male_tees
         ]
 
         selected_tee_name = (
@@ -3535,17 +3276,11 @@ if course_data:
             or []
         )
 
-        nine_choice = (
-            None
-        )
+        nine_choice = None
 
-        rating_status = (
-            None
-        )
+        rating_status = None
 
-        known_rating = (
-            None
-        )
+        known_rating = None
 
         # =====================================================
         # 9 HOLES
@@ -3587,13 +3322,9 @@ if course_data:
 
             else:
 
-                default_cr = (
-                    None
-                )
+                default_cr = None
 
-                default_slope = (
-                    None
-                )
+                default_slope = None
 
             api_nine_par = (
                 get_api_nine_par(
@@ -3652,12 +3383,10 @@ if course_data:
                     "9-hole Course Rating",
                     min_value=20.0,
                     max_value=50.0,
-                    value=
-                        default_cr,
+                    value=default_cr,
                     step=0.1,
                     format="%.1f",
-                    placeholder=
-                        "e.g. 34.2",
+                    placeholder="e.g. 34.2",
                     key=(
                         f"nine_cr_"
                         f"{course_id}_"
@@ -3672,11 +3401,9 @@ if course_data:
                     "9-hole Slope",
                     min_value=55,
                     max_value=155,
-                    value=
-                        default_slope,
+                    value=default_slope,
                     step=1,
-                    placeholder=
-                        "e.g. 125",
+                    placeholder="e.g. 125",
                     key=(
                         f"nine_slope_"
                         f"{course_id}_"
@@ -3687,10 +3414,7 @@ if course_data:
 
             with c3:
 
-                if (
-                    api_nine_par
-                    is not None
-                ):
+                if api_nine_par is not None:
 
                     course_par = int(
                         api_nine_par
@@ -3717,8 +3441,7 @@ if course_data:
                         max_value=45,
                         value=None,
                         step=1,
-                        placeholder=
-                            "Enter par",
+                        placeholder="Enter par",
                         key=(
                             f"nine_manual_par_"
                             f"{course_id}_"
@@ -3782,9 +3505,7 @@ if course_data:
                 full_par
             )
 
-            rating_status = (
-                None
-            )
+            rating_status = None
 
             st.markdown(
                 "#### Course information"
@@ -3798,10 +3519,7 @@ if course_data:
                 "Course Rating",
                 (
                     course_rating
-                    if (
-                        course_rating
-                        is not None
-                    )
+                    if course_rating is not None
                     else "N/A"
                 )
             )
@@ -3810,10 +3528,7 @@ if course_data:
                 "Slope",
                 (
                     slope_rating
-                    if (
-                        slope_rating
-                        is not None
-                    )
+                    if slope_rating is not None
                     else "N/A"
                 )
             )
@@ -3822,32 +3537,20 @@ if course_data:
                 "Par",
                 (
                     course_par
-                    if (
-                        course_par
-                        is not None
-                    )
+                    if course_par is not None
                     else "N/A"
                 )
             )
 
         ratings_complete = (
-            course_rating
-            is not None
-
-            and slope_rating
-            is not None
-
-            and course_par
-            is not None
+            course_rating is not None
+            and slope_rating is not None
+            and course_par is not None
         )
 
-        ratings_valid = (
-            False
-        )
+        ratings_valid = False
 
-        ratings_message = (
-            ""
-        )
+        ratings_message = ""
 
         if ratings_complete:
 
@@ -3920,28 +3623,21 @@ if course_data:
                     "Gross Score",
                     min_value=(
                         40
-                        if holes_played
-                        == 18
+                        if holes_played == 18
                         else 20
                     ),
                     max_value=(
                         200
-                        if holes_played
-                        == 18
+                        if holes_played == 18
                         else 100
                     ),
                     value=None,
                     step=1,
-                    placeholder=
-                        "Enter gross score",
-                    label_visibility=
-                        "collapsed"
+                    placeholder="Enter gross score",
+                    label_visibility="collapsed"
                 )
 
-                if (
-                    handicap_score
-                    is not None
-                ):
+                if handicap_score is not None:
 
                     try:
 
@@ -3965,10 +3661,7 @@ if course_data:
 
                         st.stop()
 
-                    if (
-                        round_rating
-                        is not None
-                    ):
+                    if round_rating is not None:
 
                         st.metric(
                             "Round Rating",
@@ -4020,10 +3713,6 @@ if course_data:
                                     handicap_score
                                 )
                             )
-
-                            # ---------------------------------
-                            # Recalculate status at save time
-                            # ---------------------------------
 
                             save_rating_status = (
                                 determine_nine_rating_status(
@@ -4101,10 +3790,7 @@ if course_data:
                                             ),
                                             1
                                         )
-                                        if (
-                                            round_rating
-                                            is not None
-                                        )
+                                        if round_rating is not None
                                         else None
                                     ),
 
@@ -4119,10 +3805,7 @@ if course_data:
                                         float(
                                             expected_nine
                                         )
-                                        if (
-                                            expected_nine
-                                            is not None
-                                        )
+                                        if expected_nine is not None
                                         else None
                                     )
                             }
@@ -4152,27 +3835,18 @@ if course_data:
                                             ),
                                             1
                                         )
-                                        if (
-                                            round_rating
-                                            is not None
-                                        )
+                                        if round_rating is not None
                                         else None
                                     )
                             }
 
                             show_save_controls(
-                                record=
-                                    record,
-                                fingerprint=
-                                    fingerprint,
-                                summary=
-                                    summary,
-                                save_key=
-                                    "save_total_round",
-                                confirm_key=
-                                    "confirm_duplicate_total",
-                                cancel_key=
-                                    "cancel_duplicate_total"
+                                record=record,
+                                fingerprint=fingerprint,
+                                summary=summary,
+                                save_key="save_total_round",
+                                confirm_key="confirm_duplicate_total",
+                                cancel_key="cancel_duplicate_total"
                             )
 
                         except RoundValidationError as error:
@@ -4187,8 +3861,7 @@ if course_data:
                             "Save round",
                             use_container_width=True,
                             type="primary",
-                            key=
-                                "save_total_round_without_player"
+                            key="save_total_round_without_player"
                         ):
 
                             st.error(
@@ -4203,17 +3876,11 @@ if course_data:
 
                 required_holes = (
                     18
-                    if (
-                        holes_played
-                        == 18
-                    )
+                    if holes_played == 18
                     else 9
                 )
 
-                if (
-                    holes_played
-                    == 18
-                ):
+                if holes_played == 18:
 
                     holes_for_round = list(
                         hole_data[:18]
@@ -4239,22 +3906,13 @@ if course_data:
                         {}
                     )
 
-                course_handicap = (
-                    None
-                )
+                course_handicap = None
 
                 if (
-                    existing_handicap
-                    is not None
-
-                    and course_rating
-                    is not None
-
-                    and slope_rating
-                    is not None
-
-                    and course_par
-                    is not None
+                    existing_handicap is not None
+                    and course_rating is not None
+                    and slope_rating is not None
+                    and course_par is not None
                 ):
 
                     try:
@@ -4271,14 +3929,9 @@ if course_data:
 
                     except ValueError:
 
-                        course_handicap = (
-                            None
-                        )
+                        course_handicap = None
 
-                    if (
-                        course_handicap
-                        is not None
-                    ):
+                    if course_handicap is not None:
 
                         c1, c2 = (
                             st.columns(2)
@@ -4328,11 +3981,8 @@ if course_data:
                     fallback_hole = (
                         i + 1
                         if (
-                            holes_played
-                            == 18
-
-                            or nine_choice
-                            == "Front 9"
+                            holes_played == 18
+                            or nine_choice == "Front 9"
                         )
                         else i + 10
                     )
@@ -4364,10 +4014,7 @@ if course_data:
 
                         with top1:
 
-                            if (
-                                api_par
-                                is not None
-                            ):
+                            if api_par is not None:
 
                                 hole_par = int(
                                     api_par
@@ -4398,10 +4045,7 @@ if course_data:
                                     format_func=
                                         lambda x: (
                                             "Select par"
-                                            if (
-                                                x
-                                                is None
-                                            )
+                                            if x is None
                                             else str(x)
                                         ),
                                     help=(
@@ -4437,10 +4081,7 @@ if course_data:
                                 format_func=
                                     lambda x: (
                                         "Select SI"
-                                        if (
-                                            x
-                                            is None
-                                        )
+                                        if x is None
                                         else str(x)
                                     ),
                                 help=(
@@ -4471,10 +4112,8 @@ if course_data:
                             max_value=20,
                             value=None,
                             step=1,
-                            placeholder=
-                                "Enter score",
-                            label_visibility=
-                                "collapsed",
+                            placeholder="Enter score",
+                            label_visibility="collapsed",
                             key=(
                                 f"score_"
                                 f"{course_id}_"
@@ -4486,14 +4125,9 @@ if course_data:
                         )
 
                         hole_complete = (
-                            hole_par
-                            is not None
-
-                            and stroke_index
-                            is not None
-
-                            and hole_score
-                            is not None
+                            hole_par is not None
+                            and stroke_index is not None
+                            and hole_score is not None
                         )
 
                         if hole_complete:
@@ -4519,11 +4153,8 @@ if course_data:
                             )
 
                             if (
-                                existing_handicap
-                                is None
-
-                                or course_handicap
-                                is None
+                                existing_handicap is None
+                                or course_handicap is None
                             ):
 
                                 maximum_hole_score = (
@@ -4594,20 +4225,13 @@ if course_data:
                     == required_holes
                 )
 
-                si_valid = (
-                    False
-                )
+                si_valid = False
 
-                par_valid = (
-                    False
-                )
+                par_valid = False
 
                 if entry_complete:
 
-                    if (
-                        holes_played
-                        == 18
-                    ):
+                    if holes_played == 18:
 
                         si_valid = (
                             set(
@@ -4628,14 +4252,12 @@ if course_data:
                                 entered_stroke_indexes
                             )
                             == 9
-
                             and len(
                                 set(
                                     entered_stroke_indexes
                                 )
                             )
                             == 9
-
                             and all(
                                 1 <= value <= 18
                                 for value
@@ -4688,12 +4310,16 @@ if course_data:
                     and par_valid
                 ):
 
-                    gross_score = sum(
-                        raw_scores
+                    gross_score = (
+                        sum(
+                            raw_scores
+                        )
                     )
 
-                    adjusted_score = sum(
-                        adjusted_scores
+                    adjusted_score = (
+                        sum(
+                            adjusted_scores
+                        )
                     )
 
                     try:
@@ -4716,13 +4342,9 @@ if course_data:
                             str(error)
                         )
 
-                        round_rating = (
-                            None
-                        )
+                        round_rating = None
 
-                        expected_nine = (
-                            None
-                        )
+                        expected_nine = None
 
                     st.markdown(
                         "### Round summary"
@@ -4741,10 +4363,7 @@ if course_data:
                         "Round Rating",
                         (
                             f"{round_rating:.1f}"
-                            if (
-                                round_rating
-                                is not None
-                            )
+                            if round_rating is not None
                             else "Pending"
                         )
                     )
@@ -4767,9 +4386,7 @@ if course_data:
                                 hole_no,
                                 original,
                                 adjusted
-                            ) in (
-                                adjustment_details
-                            ):
+                            ) in adjustment_details:
 
                                 st.write(
                                     f"Hole "
@@ -4809,10 +4426,6 @@ if course_data:
                                     adjusted_score
                                 )
                             )
-
-                            # ---------------------------------
-                            # Recalculate status at save time
-                            # ---------------------------------
 
                             save_rating_status = (
                                 determine_nine_rating_status(
@@ -4890,10 +4503,7 @@ if course_data:
                                             ),
                                             1
                                         )
-                                        if (
-                                            round_rating
-                                            is not None
-                                        )
+                                        if round_rating is not None
                                         else None
                                     ),
 
@@ -4908,10 +4518,7 @@ if course_data:
                                         float(
                                             expected_nine
                                         )
-                                        if (
-                                            expected_nine
-                                            is not None
-                                        )
+                                        if expected_nine is not None
                                         else None
                                     )
                             }
@@ -4939,27 +4546,18 @@ if course_data:
                                             ),
                                             1
                                         )
-                                        if (
-                                            round_rating
-                                            is not None
-                                        )
+                                        if round_rating is not None
                                         else None
                                     )
                             }
 
                             show_save_controls(
-                                record=
-                                    record,
-                                fingerprint=
-                                    fingerprint,
-                                summary=
-                                    summary,
-                                save_key=
-                                    "save_hole_round",
-                                confirm_key=
-                                    "confirm_duplicate_hole",
-                                cancel_key=
-                                    "cancel_duplicate_hole"
+                                record=record,
+                                fingerprint=fingerprint,
+                                summary=summary,
+                                save_key="save_hole_round",
+                                confirm_key="confirm_duplicate_hole",
+                                cancel_key="cancel_duplicate_hole"
                             )
 
                         except RoundValidationError as error:
@@ -4974,8 +4572,7 @@ if course_data:
                             "Save round",
                             use_container_width=True,
                             type="primary",
-                            key=
-                                "save_hole_round_without_player"
+                            key="save_hole_round_without_player"
                         ):
 
                             st.error(
@@ -5017,8 +4614,7 @@ else:
 
     players_with_scores = [
         name
-        for name
-        in AVAILABLE_PLAYERS
+        for name in AVAILABLE_PLAYERS
         if name in (
             rounds_df[
                 "Player"
@@ -5034,255 +4630,277 @@ else:
 
     else:
 
+        # =====================================================
+        # PLAYER HANDICAP VIEW
+        #
+        # No player is selected by default.
+        # Selecting a player in Add Round selects the same
+        # player here.
+        # =====================================================
+
         current_record_player = (
             st.session_state
             .record_player_selection
         )
 
+        # Clear any invalid/stale value instead of falling
+        # back to the first player in the list.
         if (
-            current_record_player
+            current_record_player is not None
+            and current_record_player
             not in players_with_scores
         ):
 
-            if (
-                player
-                and player
-                in players_with_scores
-            ):
+            st.session_state.record_player_selection = (
+                None
+            )
 
-                st.session_state.record_player_selection = (
-                    player
-                )
-
-            else:
-
-                st.session_state.record_player_selection = (
-                    players_with_scores[0]
-                )
+        record_player_options = (
+            [None]
+            + players_with_scores
+        )
 
         record_player = st.selectbox(
             "View player",
-            players_with_scores,
+            record_player_options,
+            format_func=
+                lambda value: (
+                    "Select player"
+                    if value is None
+                    else value
+                ),
             key=
                 "record_player_selection"
         )
 
-        player_record = (
-            get_player_rounds(
-                record_player
-            )
-        )
+        # =====================================================
+        # NO PLAYER SELECTED
+        # =====================================================
 
-        record_completed_holes = sum(
-            int(
-                r.get(
-                    "Holes"
-                )
-                or 0
-            )
-            for r
-            in player_record
-        )
+        if record_player is None:
 
-        effective_ratings = (
-            build_effective_round_ratings(
-                player_record
-            )
-        )
-
-        if (
-            record_completed_holes
-            < 54
-        ):
-
-            st.markdown(
-                "### Building your Handicap"
+            st.info(
+                "Select a player to view their Handicap Index "
+                "and scoring record."
             )
 
-            st.write(
-                f"**{record_completed_holes} "
-                f"of 54 completed holes**"
-            )
-
-            st.progress(
-                min(
-                    record_completed_holes
-                    / 54,
-                    1.0
-                )
-            )
-
-            show_54_hole_info()
+        # =====================================================
+        # PLAYER SELECTED
+        # =====================================================
 
         else:
 
-            (
-                record_hi,
-                _,
-                explanation
-            ) = handicap_calculation(
-                [
-                    x
-                    for x
-                    in effective_ratings
-                    if x is not None
-                ]
+            player_record = (
+                get_player_rounds(
+                    record_player
+                )
+            )
+
+            record_completed_holes = sum(
+                int(
+                    r.get(
+                        "Holes"
+                    )
+                    or 0
+                )
+                for r in player_record
+            )
+
+            effective_ratings = (
+                build_effective_round_ratings(
+                    player_record
+                )
             )
 
             if (
-                record_hi
-                is not None
+                record_completed_holes
+                < 54
             ):
 
-                st.metric(
-                    "Handicap Index",
-                    f"{record_hi:.1f}"
-                )
-
-                st.caption(
-                    "Unofficial WHS-based calculation"
+                st.markdown(
+                    "### Building your Handicap"
                 )
 
                 st.write(
-                    f"**{explanation}**"
+                    f"**{record_completed_holes} "
+                    f"of 54 completed holes**"
                 )
 
-            else:
-
-                st.warning(
-                    "There is not yet enough valid rating "
-                    "information to calculate a Handicap Index."
-                )
-
-        display_rows = []
-
-        for (
-            round_item,
-            effective_rating
-        ) in zip(
-            player_record,
-            effective_ratings
-        ):
-
-            holes_value = int(
-                round_item.get(
-                    "Holes"
-                )
-                or 0
-            )
-
-            if holes_value == 9:
-
-                display_rating_status = (
-                    round_item.get(
-                        "Rating Status"
+                st.progress(
+                    min(
+                        record_completed_holes
+                        / 54,
+                        1.0
                     )
-                    or "Not recorded"
                 )
+
+                show_54_hole_info()
 
             else:
 
-                display_rating_status = (
-                    ""
+                (
+                    record_hi,
+                    _,
+                    explanation
+                ) = handicap_calculation(
+                    [
+                        x
+                        for x
+                        in effective_ratings
+                        if x is not None
+                    ]
                 )
 
-            display_rows.append({
+                if (
+                    record_hi
+                    is not None
+                ):
 
-                "Date":
-                    round_item.get(
-                        "Date"
-                    ),
+                    st.metric(
+                        "Handicap Index",
+                        f"{record_hi:.1f}"
+                    )
 
-                "Golf Course":
-                    round_item.get(
-                        "Golf Course"
-                    ),
+                    st.caption(
+                        "Unofficial WHS-based calculation"
+                    )
 
-                "Tees":
-                    round_item.get(
-                        "Tees"
-                    ),
+                    st.write(
+                        f"**{explanation}**"
+                    )
 
-                "Holes":
+                else:
+
+                    st.warning(
+                        "There is not yet enough valid rating "
+                        "information to calculate a Handicap Index."
+                    )
+
+            display_rows = []
+
+            for (
+                round_item,
+                effective_rating
+            ) in zip(
+                player_record,
+                effective_ratings
+            ):
+
+                holes_value = int(
                     round_item.get(
                         "Holes"
-                    ),
-
-                "Rating Status":
-                    display_rating_status,
-
-                "Gross Score":
-                    round_item.get(
-                        "Gross Score"
-                    ),
-
-                "Round Rating":
-                    effective_rating,
-
-                "_Created At":
-                    round_item.get(
-                        "Created At"
                     )
-            })
+                    or 0
+                )
 
-        display_df = (
-            pd.DataFrame(
-                display_rows
+                if holes_value == 9:
+
+                    display_rating_status = (
+                        round_item.get(
+                            "Rating Status"
+                        )
+                        or "Not recorded"
+                    )
+
+                else:
+
+                    display_rating_status = ""
+
+                display_rows.append({
+
+                    "Date":
+                        round_item.get(
+                            "Date"
+                        ),
+
+                    "Golf Course":
+                        round_item.get(
+                            "Golf Course"
+                        ),
+
+                    "Tees":
+                        round_item.get(
+                            "Tees"
+                        ),
+
+                    "Holes":
+                        round_item.get(
+                            "Holes"
+                        ),
+
+                    "Rating Status":
+                        display_rating_status,
+
+                    "Gross Score":
+                        round_item.get(
+                            "Gross Score"
+                        ),
+
+                    "Round Rating":
+                        effective_rating,
+
+                    "_Created At":
+                        round_item.get(
+                            "Created At"
+                        )
+                })
+
+            display_df = (
+                pd.DataFrame(
+                    display_rows
+                )
             )
-        )
 
-        if not (
-            display_df.empty
-        ):
+            if not display_df.empty:
 
-            display_df[
-                "_Created At"
-            ] = (
                 display_df[
                     "_Created At"
-                ]
-                .fillna(
-                    ""
-                )
-                .astype(
-                    str
-                )
-            )
-
-            display_df = (
-                display_df.sort_values(
-                    [
-                        "Date",
-                        "_Created At"
-                    ],
-                    ascending=[
-                        False,
-                        False
-                    ]
-                )
-            )
-
-            display_df = (
-                display_df.drop(
-                    columns=[
+                ] = (
+                    display_df[
                         "_Created At"
                     ]
+                    .fillna(
+                        ""
+                    )
+                    .astype(
+                        str
+                    )
                 )
+
+                display_df = (
+                    display_df.sort_values(
+                        [
+                            "Date",
+                            "_Created At"
+                        ],
+                        ascending=[
+                            False,
+                            False
+                        ]
+                    )
+                )
+
+                display_df = (
+                    display_df.drop(
+                        columns=[
+                            "_Created At"
+                        ]
+                    )
+                )
+
+            st.markdown(
+                "### Scoring Record"
             )
 
-        st.markdown(
-            "### Scoring Record"
-        )
+            st.dataframe(
+                display_df,
+                hide_index=True,
+                use_container_width=True
+            )
 
-        st.dataframe(
-            display_df,
-            hide_index=True,
-            use_container_width=True
-        )
+            show_round_rating_info()
 
-        show_round_rating_info()
-
-        show_rating_status_info()
+            show_rating_status_info()
 
 
 # =========================================================
@@ -5305,8 +4923,7 @@ with st.expander(
             st.text_input(
                 "Admin PIN",
                 type="password",
-                key=
-                    "admin_pin_input"
+                key="admin_pin_input"
             )
         )
 
@@ -5365,17 +4982,11 @@ with st.expander(
             use_container_width=True
         ):
 
-            st.session_state.admin_authenticated = (
-                False
-            )
+            st.session_state.admin_authenticated = False
 
-            st.session_state.pending_delete_round_id = (
-                None
-            )
+            st.session_state.pending_delete_round_id = None
 
-            st.session_state.pending_bulk_delete_ids = (
-                []
-            )
+            st.session_state.pending_bulk_delete_ids = []
 
             st.rerun()
 
@@ -5412,8 +5023,7 @@ with st.expander(
                     r.get(
                         "Player"
                     )
-                    for r
-                    in admin_rounds
+                    for r in admin_rounds
                     if r.get(
                         "Player"
                     )
@@ -5431,9 +5041,12 @@ with st.expander(
                     "Multiple rounds for one player",
                     "All rounds for one player"
                 ],
-                key=
-                    "admin_delete_mode"
+                key="admin_delete_mode"
             )
+
+            # =================================================
+            # SINGLE ROUND
+            # =================================================
 
             if (
                 delete_mode
@@ -5442,9 +5055,7 @@ with st.expander(
 
                 options = {}
 
-                for r in (
-                    admin_rounds
-                ):
+                for r in admin_rounds:
 
                     visible_label = (
                         f"{r.get('Date')} • "
@@ -5476,8 +5087,7 @@ with st.expander(
                                 " [",
                                 1
                             )[0],
-                    key=
-                        "admin_single_round"
+                    key="admin_single_round"
                 )
 
                 selected_round = (
@@ -5523,17 +5133,14 @@ with st.expander(
                     if st.button(
                         "Delete selected round",
                         use_container_width=True,
-                        key=
-                            "start_single_delete"
+                        key="start_single_delete"
                     ):
 
                         st.session_state.pending_delete_round_id = (
                             selected_id
                         )
 
-                        st.session_state.pending_bulk_delete_ids = (
-                            []
-                        )
+                        st.session_state.pending_bulk_delete_ids = []
 
                         st.rerun()
 
@@ -5544,9 +5151,7 @@ with st.expander(
                         "the selected round."
                     )
 
-                    c1, c2 = (
-                        st.columns(2)
-                    )
+                    c1, c2 = st.columns(2)
 
                     with c1:
 
@@ -5554,8 +5159,7 @@ with st.expander(
                             "Yes, delete it",
                             use_container_width=True,
                             type="primary",
-                            key=
-                                "confirm_single_delete"
+                            key="confirm_single_delete"
                         ):
 
                             try:
@@ -5564,34 +5168,21 @@ with st.expander(
                                     selected_id
                                 )
 
-                                st.session_state.pending_delete_round_id = (
-                                    None
-                                )
+                                st.session_state.pending_delete_round_id = None
 
-                                st.session_state.pending_bulk_delete_ids = (
-                                    []
-                                )
+                                st.session_state.pending_bulk_delete_ids = []
 
-                                st.session_state.saved_round_summary = (
-                                    None
-                                )
+                                st.session_state.saved_round_summary = None
 
-                                st.session_state.last_saved_round_fingerprint = (
-                                    None
-                                )
+                                st.session_state.last_saved_round_fingerprint = None
 
-                                st.session_state.pending_duplicate_fingerprint = (
-                                    None
-                                )
+                                st.session_state.pending_duplicate_fingerprint = None
 
                                 load_rounds_from_database.clear()
 
                                 st.rerun()
 
-                            except (
-                                requests.exceptions
-                                .RequestException
-                            ) as error:
+                            except requests.exceptions.RequestException as error:
 
                                 st.error(
                                     "The round could not be deleted."
@@ -5606,15 +5197,16 @@ with st.expander(
                         if st.button(
                             "Cancel",
                             use_container_width=True,
-                            key=
-                                "cancel_single_delete"
+                            key="cancel_single_delete"
                         ):
 
-                            st.session_state.pending_delete_round_id = (
-                                None
-                            )
+                            st.session_state.pending_delete_round_id = None
 
                             st.rerun()
+
+            # =================================================
+            # MULTIPLE ROUNDS
+            # =================================================
 
             elif (
                 delete_mode
@@ -5624,14 +5216,12 @@ with st.expander(
                 selected_bulk_player = st.selectbox(
                     "Select player",
                     players_in_database,
-                    key=
-                        "admin_bulk_player"
+                    key="admin_bulk_player"
                 )
 
                 filtered_rounds = [
                     r
-                    for r
-                    in admin_rounds
+                    for r in admin_rounds
                     if (
                         r.get(
                             "Player"
@@ -5642,9 +5232,7 @@ with st.expander(
 
                 bulk_options = {}
 
-                for r in (
-                    filtered_rounds
-                ):
+                for r in filtered_rounds:
 
                     visible_label = (
                         f"{r.get('Date')} • "
@@ -5676,8 +5264,7 @@ with st.expander(
                         f"Select all rounds for "
                         f"{selected_bulk_player}"
                     ),
-                    key=
-                        "admin_select_all_player_rounds"
+                    key="admin_select_all_player_rounds"
                 )
 
                 if select_all_shown:
@@ -5707,8 +5294,7 @@ with st.expander(
                                     " [",
                                     1
                                 )[0],
-                        key=
-                            "admin_bulk_round_selection"
+                        key="admin_bulk_round_selection"
                     )
 
                 selected_bulk_ids = [
@@ -5733,10 +5319,7 @@ with st.expander(
                     selected_bulk_ids
                 )
 
-                if (
-                    selected_count
-                    == 0
-                ):
+                if selected_count == 0:
 
                     st.caption(
                         "Select at least one round to delete."
@@ -5769,9 +5352,7 @@ with st.expander(
                         )
                     )
 
-                    if not (
-                        same_pending_selection
-                    ):
+                    if not same_pending_selection:
 
                         if st.button(
                             (
@@ -5781,13 +5362,10 @@ with st.expander(
                                 f"{'' if selected_count == 1 else 's'}"
                             ),
                             use_container_width=True,
-                            key=
-                                "start_bulk_delete"
+                            key="start_bulk_delete"
                         ):
 
-                            st.session_state.pending_delete_round_id = (
-                                None
-                            )
+                            st.session_state.pending_delete_round_id = None
 
                             st.session_state.pending_bulk_delete_ids = (
                                 selected_bulk_ids
@@ -5805,9 +5383,7 @@ with st.expander(
                             f"for {selected_bulk_player}."
                         )
 
-                        c1, c2 = (
-                            st.columns(2)
-                        )
+                        c1, c2 = st.columns(2)
 
                         with c1:
 
@@ -5818,8 +5394,7 @@ with st.expander(
                                 ),
                                 use_container_width=True,
                                 type="primary",
-                                key=
-                                    "confirm_bulk_delete"
+                                key="confirm_bulk_delete"
                             ):
 
                                 try:
@@ -5828,34 +5403,21 @@ with st.expander(
                                         selected_bulk_ids
                                     )
 
-                                    st.session_state.pending_bulk_delete_ids = (
-                                        []
-                                    )
+                                    st.session_state.pending_bulk_delete_ids = []
 
-                                    st.session_state.pending_delete_round_id = (
-                                        None
-                                    )
+                                    st.session_state.pending_delete_round_id = None
 
-                                    st.session_state.saved_round_summary = (
-                                        None
-                                    )
+                                    st.session_state.saved_round_summary = None
 
-                                    st.session_state.last_saved_round_fingerprint = (
-                                        None
-                                    )
+                                    st.session_state.last_saved_round_fingerprint = None
 
-                                    st.session_state.pending_duplicate_fingerprint = (
-                                        None
-                                    )
+                                    st.session_state.pending_duplicate_fingerprint = None
 
                                     load_rounds_from_database.clear()
 
                                     st.rerun()
 
-                                except (
-                                    requests.exceptions
-                                    .RequestException
-                                ) as error:
+                                except requests.exceptions.RequestException as error:
 
                                     st.error(
                                         "The selected rounds "
@@ -5871,29 +5433,28 @@ with st.expander(
                             if st.button(
                                 "Cancel",
                                 use_container_width=True,
-                                key=
-                                    "cancel_bulk_delete"
+                                key="cancel_bulk_delete"
                             ):
 
-                                st.session_state.pending_bulk_delete_ids = (
-                                    []
-                                )
+                                st.session_state.pending_bulk_delete_ids = []
 
                                 st.rerun()
+
+            # =================================================
+            # ALL ROUNDS FOR ONE PLAYER
+            # =================================================
 
             else:
 
                 selected_player_for_delete = st.selectbox(
                     "Select player",
                     players_in_database,
-                    key=
-                        "admin_delete_all_player"
+                    key="admin_delete_all_player"
                 )
 
                 player_rounds_to_delete = [
                     r
-                    for r
-                    in admin_rounds
+                    for r in admin_rounds
                     if (
                         r.get(
                             "Player"
@@ -5906,8 +5467,7 @@ with st.expander(
                     r.get(
                         "ID"
                     )
-                    for r
-                    in player_rounds_to_delete
+                    for r in player_rounds_to_delete
                     if (
                         r.get(
                             "ID"
@@ -5942,10 +5502,8 @@ with st.expander(
                         f"{required_confirmation} "
                         f"to continue"
                     ),
-                    placeholder=
-                        required_confirmation,
-                    key=
-                        "delete_player_confirmation"
+                    placeholder=required_confirmation,
+                    key="delete_player_confirmation"
                 )
 
                 delete_player_ready = (
@@ -5957,7 +5515,6 @@ with st.expander(
 
                 pending_player_delete = (
                     total_player_rounds > 0
-
                     and set(
                         str(value)
                         for value
@@ -5983,13 +5540,10 @@ with st.expander(
                             not delete_player_ready
                             or total_player_rounds == 0
                         ),
-                        key=
-                            "start_delete_player_all"
+                        key="start_delete_player_all"
                     ):
 
-                        st.session_state.pending_delete_round_id = (
-                            None
-                        )
+                        st.session_state.pending_delete_round_id = None
 
                         st.session_state.pending_bulk_delete_ids = (
                             player_round_ids
@@ -6005,9 +5559,7 @@ with st.expander(
                         f"{selected_player_for_delete}?"
                     )
 
-                    c1, c2 = (
-                        st.columns(2)
-                    )
+                    c1, c2 = st.columns(2)
 
                     with c1:
 
@@ -6015,8 +5567,7 @@ with st.expander(
                             "Yes, delete them",
                             use_container_width=True,
                             type="primary",
-                            key=
-                                "confirm_delete_player_all"
+                            key="confirm_delete_player_all"
                         ):
 
                             try:
@@ -6025,34 +5576,21 @@ with st.expander(
                                     player_round_ids
                                 )
 
-                                st.session_state.pending_bulk_delete_ids = (
-                                    []
-                                )
+                                st.session_state.pending_bulk_delete_ids = []
 
-                                st.session_state.pending_delete_round_id = (
-                                    None
-                                )
+                                st.session_state.pending_delete_round_id = None
 
-                                st.session_state.saved_round_summary = (
-                                    None
-                                )
+                                st.session_state.saved_round_summary = None
 
-                                st.session_state.last_saved_round_fingerprint = (
-                                    None
-                                )
+                                st.session_state.last_saved_round_fingerprint = None
 
-                                st.session_state.pending_duplicate_fingerprint = (
-                                    None
-                                )
+                                st.session_state.pending_duplicate_fingerprint = None
 
                                 load_rounds_from_database.clear()
 
                                 st.rerun()
 
-                            except (
-                                requests.exceptions
-                                .RequestException
-                            ) as error:
+                            except requests.exceptions.RequestException as error:
 
                                 st.error(
                                     "The player's rounds "
@@ -6068,13 +5606,10 @@ with st.expander(
                         if st.button(
                             "Cancel",
                             use_container_width=True,
-                            key=
-                                "cancel_delete_player_all"
+                            key="cancel_delete_player_all"
                         ):
 
-                            st.session_state.pending_bulk_delete_ids = (
-                                []
-                            )
+                            st.session_state.pending_bulk_delete_ids = []
 
                             st.rerun()
 
