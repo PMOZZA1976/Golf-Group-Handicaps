@@ -626,6 +626,9 @@ DEFAULT_SESSION_VALUES = {
     "saved_round_summary":
         None,
 
+    "pending_duplicate_fingerprint":
+        None,
+
     "admin_authenticated":
         False,
 
@@ -732,6 +735,7 @@ def save_round_to_database(
             or "duplicate key"
             in text
         ):
+
             raise DuplicateRoundError()
 
         response.raise_for_status()
@@ -742,7 +746,9 @@ def delete_round_from_database(
 ):
 
     if round_id is None:
+
         return
+
 
     response = requests.delete(
         f"{SUPABASE_URL}/rest/v1/rounds",
@@ -777,6 +783,7 @@ def delete_rounds_from_database(
 
 
     if not clean_ids:
+
         return
 
 
@@ -820,6 +827,244 @@ def delete_rounds_from_database(
 
 
         response.raise_for_status()
+
+
+# =========================================================
+# DUPLICATE ROUND CHECK
+# =========================================================
+
+def normalise_compare_value(
+    value
+):
+
+    if value is None:
+
+        return ""
+
+
+    return (
+        str(
+            value
+        )
+        .strip()
+        .lower()
+    )
+
+
+def find_identical_rounds_in_database(
+    round_data
+):
+
+    """
+    Performs a fresh database query immediately before saving.
+
+    A possible duplicate must have the same:
+    - player
+    - date
+    - holes
+    - gross score
+    - adjusted score
+
+    The returned candidates are then compared for:
+    - course
+    - tees
+    - front/back nine where applicable
+
+    Entry method is deliberately NOT included, because the same
+    physical round could otherwise be entered once as Total and
+    once as Hole-by-hole without triggering the warning.
+    """
+
+    response = requests.get(
+        f"{SUPABASE_URL}/rest/v1/rounds",
+        headers=SUPABASE_HEADERS,
+        params={
+            "select":
+                "id,"
+                "player_id,"
+                "date_played,"
+                "holes,"
+                "nine,"
+                "golf_course,"
+                "course_layout,"
+                "course_api_id,"
+                "tees,"
+                "gross_score,"
+                "adjusted_score",
+
+            "player_id":
+                f"eq.{round_data['player_id']}",
+
+            "date_played":
+                f"eq.{round_data['date_played']}",
+
+            "holes":
+                f"eq.{round_data['holes']}",
+
+            "gross_score":
+                f"eq.{round_data['gross_score']}",
+
+            "adjusted_score":
+                f"eq.{round_data['adjusted_score']}"
+        },
+        timeout=15
+    )
+
+    response.raise_for_status()
+
+    candidates = (
+        response.json()
+    )
+
+
+    matches = []
+
+
+    new_course_api_id = (
+        normalise_compare_value(
+            round_data.get(
+                "course_api_id"
+            )
+        )
+    )
+
+
+    new_course_name = (
+        normalise_compare_value(
+            round_data.get(
+                "golf_course"
+            )
+        )
+    )
+
+
+    new_layout = (
+        normalise_compare_value(
+            round_data.get(
+                "course_layout"
+            )
+        )
+    )
+
+
+    new_tees = (
+        normalise_compare_value(
+            round_data.get(
+                "tees"
+            )
+        )
+    )
+
+
+    new_nine = (
+        normalise_compare_value(
+            round_data.get(
+                "nine"
+            )
+        )
+    )
+
+
+    for candidate in (
+        candidates
+    ):
+
+        candidate_api_id = (
+            normalise_compare_value(
+                candidate.get(
+                    "course_api_id"
+                )
+            )
+        )
+
+
+        candidate_course = (
+            normalise_compare_value(
+                candidate.get(
+                    "golf_course"
+                )
+            )
+        )
+
+
+        candidate_layout = (
+            normalise_compare_value(
+                candidate.get(
+                    "course_layout"
+                )
+            )
+        )
+
+
+        candidate_tees = (
+            normalise_compare_value(
+                candidate.get(
+                    "tees"
+                )
+            )
+        )
+
+
+        candidate_nine = (
+            normalise_compare_value(
+                candidate.get(
+                    "nine"
+                )
+            )
+        )
+
+
+        # ---------------------------------------------
+        # Prefer the API ID when both records have one.
+        # Otherwise fall back to course/layout names.
+        # ---------------------------------------------
+
+        if (
+            new_course_api_id
+            and candidate_api_id
+        ):
+
+            same_course = (
+                new_course_api_id
+                == candidate_api_id
+            )
+
+
+        else:
+
+            same_course = (
+                new_course_name
+                == candidate_course
+
+                and new_layout
+                == candidate_layout
+            )
+
+
+        same_tees = (
+            new_tees
+            == candidate_tees
+        )
+
+
+        same_nine = (
+            new_nine
+            == candidate_nine
+        )
+
+
+        if (
+            same_course
+            and same_tees
+            and same_nine
+        ):
+
+            matches.append(
+                candidate
+            )
+
+
+    return matches
 
 
 # =========================================================
@@ -930,6 +1175,7 @@ for row in database_rounds:
     )
 
     if player_name is None:
+
         continue
 
 
@@ -949,6 +1195,7 @@ for row in database_rounds:
         )
 
     except Exception:
+
         pass
 
 
@@ -1050,17 +1297,13 @@ def search_courses(
 ):
 
     response = requests.get(
-
         f"{GOLF_API_BASE}/search",
-
         headers=
             GOLF_HEADERS,
-
         params={
             "search_query":
                 search_text
         },
-
         timeout=15
     )
 
@@ -1083,13 +1326,10 @@ def get_course_details(
 ):
 
     response = requests.get(
-
         f"{GOLF_API_BASE}"
         f"/courses/{course_id}",
-
         headers=
             GOLF_HEADERS,
-
         timeout=15
     )
 
@@ -1143,7 +1383,10 @@ def validate_course_values(
         )
 
 
-    if slope < 55 or slope > 155:
+    if (
+        slope < 55
+        or slope > 155
+    ):
 
         return (
             False,
@@ -1153,7 +1396,10 @@ def validate_course_values(
 
     if holes_played == 9:
 
-        if rating < 20 or rating > 50:
+        if (
+            rating < 20
+            or rating > 50
+        ):
 
             return (
                 False,
@@ -1161,7 +1407,10 @@ def validate_course_values(
             )
 
 
-        if par < 25 or par > 45:
+        if (
+            par < 25
+            or par > 45
+        ):
 
             return (
                 False,
@@ -1171,7 +1420,10 @@ def validate_course_values(
 
     elif holes_played == 18:
 
-        if rating < 40 or rating > 100:
+        if (
+            rating < 40
+            or rating > 100
+        ):
 
             return (
                 False,
@@ -1179,7 +1431,10 @@ def validate_course_values(
             )
 
 
-        if par < 50 or par > 90:
+        if (
+            par < 50
+            or par > 90
+        ):
 
             return (
                 False,
@@ -2158,8 +2413,10 @@ def get_player_rounds(
     return sorted(
         [
             r
+
             for r
             in all_rounds
+
             if (
                 r.get(
                     "Player"
@@ -2183,6 +2440,7 @@ def get_completed_holes(
             )
             or 0
         )
+
         for r
         in get_player_rounds(
             player_name
@@ -2213,6 +2471,7 @@ def get_player_handicap(
             )
             or 0
         )
+
         for r
         in player_rounds
     ) < 54:
@@ -2234,8 +2493,10 @@ def get_player_handicap(
     ) = handicap_calculation(
         [
             x
+
             for x
             in effective
+
             if x is not None
         ]
     )
@@ -2414,7 +2675,9 @@ def build_course_labels(
 
     location_text = ", ".join(
         item
-        for item in [
+
+        for item
+        in [
             location.get(
                 "city",
                 ""
@@ -2424,6 +2687,7 @@ def build_course_labels(
                 ""
             )
         ]
+
         if item
     )
 
@@ -2535,6 +2799,7 @@ def find_known_nine_rating(
         if any(
             alias
             in course_text
+
             for alias
             in item[
                 "aliases"
@@ -2648,6 +2913,7 @@ def get_api_nine_par(
 
     if any(
         par is None
+
         for par
         in pars
     ):
@@ -2783,6 +3049,207 @@ def make_round_fingerprint(
 
 
 # =========================================================
+# SAVE HELPERS
+# =========================================================
+
+def complete_round_save(
+    record,
+    fingerprint,
+    summary
+):
+
+    save_round_to_database(
+        record
+    )
+
+
+    st.session_state.last_saved_round_fingerprint = (
+        fingerprint
+    )
+
+
+    st.session_state.pending_duplicate_fingerprint = (
+        None
+    )
+
+
+    st.session_state.saved_round_summary = (
+        summary
+    )
+
+
+    load_rounds_from_database.clear()
+
+
+    st.rerun()
+
+
+def show_save_controls(
+    record,
+    fingerprint,
+    summary,
+    save_key,
+    confirm_key,
+    cancel_key
+):
+
+    already_saved = (
+        st.session_state
+        .last_saved_round_fingerprint
+        == fingerprint
+    )
+
+
+    duplicate_confirmation_pending = (
+        st.session_state
+        .pending_duplicate_fingerprint
+        == fingerprint
+    )
+
+
+    # =====================================================
+    # DUPLICATE CONFIRMATION
+    # =====================================================
+
+    if duplicate_confirmation_pending:
+
+        st.warning(
+            "An identical round has already been recorded. "
+            "If this was genuinely another round with the same "
+            "score, you can save it as a separate round."
+        )
+
+
+        c1, c2 = (
+            st.columns(2)
+        )
+
+
+        with c1:
+
+            if st.button(
+                "Save as another round",
+                use_container_width=True,
+                type="primary",
+                key=
+                    confirm_key
+            ):
+
+                try:
+
+                    complete_round_save(
+                        record,
+                        fingerprint,
+                        summary
+                    )
+
+
+                except DuplicateRoundError:
+
+                    st.error(
+                        "Supabase is currently preventing this exact "
+                        "duplicate from being stored. If this was a "
+                        "genuine second round, the database duplicate "
+                        "constraint will need to be adjusted."
+                    )
+
+
+                except (
+                    requests.exceptions
+                    .RequestException
+                ) as error:
+
+                    st.error(
+                        "The round could not be saved."
+                    )
+
+                    st.caption(
+                        str(error)
+                    )
+
+
+        with c2:
+
+            if st.button(
+                "Cancel",
+                use_container_width=True,
+                key=
+                    cancel_key
+            ):
+
+                st.session_state.pending_duplicate_fingerprint = (
+                    None
+                )
+
+                st.rerun()
+
+
+        return
+
+
+    # =====================================================
+    # NORMAL SAVE
+    # =====================================================
+
+    if st.button(
+        "Save round",
+        use_container_width=True,
+        type="primary",
+        disabled=
+            already_saved,
+        key=
+            save_key
+    ):
+
+        try:
+
+            identical_rounds = (
+                find_identical_rounds_in_database(
+                    record
+                )
+            )
+
+
+            if identical_rounds:
+
+                st.session_state.pending_duplicate_fingerprint = (
+                    fingerprint
+                )
+
+                st.rerun()
+
+
+            else:
+
+                complete_round_save(
+                    record,
+                    fingerprint,
+                    summary
+                )
+
+
+        except DuplicateRoundError:
+
+            st.warning(
+                "This round appears to have already been saved."
+            )
+
+
+        except (
+            requests.exceptions
+            .RequestException
+        ) as error:
+
+            st.error(
+                "The round could not be saved."
+            )
+
+            st.caption(
+                str(error)
+            )
+
+
+# =========================================================
 # SAVED ROUND CARD
 # =========================================================
 
@@ -2841,6 +3308,10 @@ def show_saved_round_card():
         )
 
         st.session_state.last_saved_round_fingerprint = (
+            None
+        )
+
+        st.session_state.pending_duplicate_fingerprint = (
             None
         )
 
@@ -2950,6 +3421,10 @@ if (
             )
 
             st.session_state.last_saved_round_fingerprint = (
+                None
+            )
+
+            st.session_state.pending_duplicate_fingerprint = (
                 None
             )
 
@@ -3182,6 +3657,10 @@ if (
                             None
                         )
 
+                        st.session_state.pending_duplicate_fingerprint = (
+                            None
+                        )
+
                         st.rerun()
 
 
@@ -3269,6 +3748,7 @@ if course_data:
                 "tee_name",
                 "Unnamed tee"
             )
+
             for tee
             in male_tees
         ]
@@ -3661,7 +4141,9 @@ if course_data:
                 get_player_handicap(
                     player
                 )
+
                 if player
+
                 else None
             )
 
@@ -3706,14 +4188,18 @@ if course_data:
                     "Gross Score",
                     min_value=(
                         40
+
                         if holes_played
                         == 18
+
                         else 20
                     ),
                     max_value=(
                         200
+
                         if holes_played
                         == 18
+
                         else 100
                     ),
                     value=None,
@@ -3797,213 +4283,189 @@ if course_data:
                     )
 
 
-                    already_saved = (
-                        st.session_state
-                        .last_saved_round_fingerprint
-                        == fingerprint
-                    )
+                    if player:
+
+                        try:
+
+                            player_id = (
+                                validate_round_before_save(
+                                    player,
+                                    holes_played,
+                                    course_rating,
+                                    slope_rating,
+                                    course_par,
+                                    handicap_score,
+                                    handicap_score
+                                )
+                            )
 
 
-                    if st.button(
-                        "Save round",
-                        use_container_width=True,
-                        type="primary",
-                        disabled=
-                            already_saved,
-                        key=
-                            "save_total_round"
-                    ):
+                            record = {
 
-                        if not player:
+                                "player_id":
+                                    player_id,
+
+                                "date_played":
+                                    date_played.isoformat(),
+
+                                "holes":
+                                    int(
+                                        holes_played
+                                    ),
+
+                                "nine":
+                                    nine_choice,
+
+                                "golf_course":
+                                    club_name,
+
+                                "course_layout":
+                                    course_layout,
+
+                                "course_api_id":
+                                    str(
+                                        course_id
+                                    ),
+
+                                "tees":
+                                    selected_tee_name,
+
+                                "course_rating":
+                                    float(
+                                        course_rating
+                                    ),
+
+                                "slope_rating":
+                                    int(
+                                        slope_rating
+                                    ),
+
+                                "par":
+                                    int(
+                                        course_par
+                                    ),
+
+                                "gross_score":
+                                    int(
+                                        handicap_score
+                                    ),
+
+                                "adjusted_score":
+                                    int(
+                                        handicap_score
+                                    ),
+
+                                "round_rating":
+                                    (
+                                        round(
+                                            float(
+                                                round_rating
+                                            ),
+                                            1
+                                        )
+
+                                        if (
+                                            round_rating
+                                            is not None
+                                        )
+
+                                        else None
+                                    ),
+
+                                "entry_method":
+                                    "Total",
+
+                                "hole_scores":
+                                    None,
+
+                                "expected_nine":
+                                    (
+                                        float(
+                                            expected_nine
+                                        )
+
+                                        if (
+                                            expected_nine
+                                            is not None
+                                        )
+
+                                        else None
+                                    )
+                            }
+
+
+                            summary = {
+
+                                "player":
+                                    player,
+
+                                "course":
+                                    (
+                                        st.session_state
+                                        .selected_course_short_label
+                                        or club_name
+                                    ),
+
+                                "gross_score":
+                                    int(
+                                        handicap_score
+                                    ),
+
+                                "round_rating":
+                                    (
+                                        round(
+                                            float(
+                                                round_rating
+                                            ),
+                                            1
+                                        )
+
+                                        if (
+                                            round_rating
+                                            is not None
+                                        )
+
+                                        else None
+                                    )
+                            }
+
+
+                            show_save_controls(
+                                record=
+                                    record,
+                                fingerprint=
+                                    fingerprint,
+                                summary=
+                                    summary,
+                                save_key=
+                                    "save_total_round",
+                                confirm_key=
+                                    "confirm_duplicate_total",
+                                cancel_key=
+                                    "cancel_duplicate_total"
+                            )
+
+
+                        except RoundValidationError as error:
+
+                            st.error(
+                                str(error)
+                            )
+
+
+                    else:
+
+                        if st.button(
+                            "Save round",
+                            use_container_width=True,
+                            type="primary",
+                            key=
+                                "save_total_round_without_player"
+                        ):
 
                             st.error(
                                 "Please select a player."
                             )
-
-
-                        else:
-
-                            try:
-
-                                player_id = (
-                                    validate_round_before_save(
-                                        player,
-                                        holes_played,
-                                        course_rating,
-                                        slope_rating,
-                                        course_par,
-                                        handicap_score,
-                                        handicap_score
-                                    )
-                                )
-
-
-                                record = {
-
-                                    "player_id":
-                                        player_id,
-
-                                    "date_played":
-                                        date_played.isoformat(),
-
-                                    "holes":
-                                        int(
-                                            holes_played
-                                        ),
-
-                                    "nine":
-                                        nine_choice,
-
-                                    "golf_course":
-                                        club_name,
-
-                                    "course_layout":
-                                        course_layout,
-
-                                    "course_api_id":
-                                        str(
-                                            course_id
-                                        ),
-
-                                    "tees":
-                                        selected_tee_name,
-
-                                    "course_rating":
-                                        float(
-                                            course_rating
-                                        ),
-
-                                    "slope_rating":
-                                        int(
-                                            slope_rating
-                                        ),
-
-                                    "par":
-                                        int(
-                                            course_par
-                                        ),
-
-                                    "gross_score":
-                                        int(
-                                            handicap_score
-                                        ),
-
-                                    "adjusted_score":
-                                        int(
-                                            handicap_score
-                                        ),
-
-                                    "round_rating":
-                                        (
-                                            round(
-                                                float(
-                                                    round_rating
-                                                ),
-                                                1
-                                            )
-                                            if (
-                                                round_rating
-                                                is not None
-                                            )
-                                            else None
-                                        ),
-
-                                    "entry_method":
-                                        "Total",
-
-                                    "hole_scores":
-                                        None,
-
-                                    "expected_nine":
-                                        (
-                                            float(
-                                                expected_nine
-                                            )
-                                            if (
-                                                expected_nine
-                                                is not None
-                                            )
-                                            else None
-                                        )
-                                }
-
-
-                                save_round_to_database(
-                                    record
-                                )
-
-
-                                st.session_state.last_saved_round_fingerprint = (
-                                    fingerprint
-                                )
-
-
-                                st.session_state.saved_round_summary = {
-
-                                    "player":
-                                        player,
-
-                                    "course":
-                                        (
-                                            st.session_state
-                                            .selected_course_short_label
-                                            or club_name
-                                        ),
-
-                                    "gross_score":
-                                        int(
-                                            handicap_score
-                                        ),
-
-                                    "round_rating":
-                                        (
-                                            round(
-                                                float(
-                                                    round_rating
-                                                ),
-                                                1
-                                            )
-                                            if (
-                                                round_rating
-                                                is not None
-                                            )
-                                            else None
-                                        )
-                                }
-
-
-                                load_rounds_from_database.clear()
-
-                                st.rerun()
-
-
-                            except RoundValidationError as error:
-
-                                st.error(
-                                    str(error)
-                                )
-
-
-                            except DuplicateRoundError:
-
-                                st.warning(
-                                    "This round appears to "
-                                    "have already been saved."
-                                )
-
-
-                            except (
-                                requests.exceptions
-                                .RequestException
-                            ) as error:
-
-                                st.error(
-                                    "The round could not be saved."
-                                )
-
-                                st.caption(
-                                    str(error)
-                                )
 
 
             # =================================================
@@ -4238,10 +4700,12 @@ if course_data:
                                     format_func=
                                         lambda x: (
                                             "Select par"
+
                                             if (
                                                 x
                                                 is None
                                             )
+
                                             else str(x)
                                         ),
                                     help=(
@@ -4283,10 +4747,12 @@ if course_data:
                                 format_func=
                                     lambda x: (
                                         "Select SI"
+
                                         if (
                                             x
                                             is None
                                         )
+
                                         else str(x)
                                     ),
                                 help=(
@@ -4634,10 +5100,12 @@ if course_data:
                         "Round Rating",
                         (
                             f"{round_rating:.1f}"
+
                             if (
                                 round_rating
                                 is not None
                             )
+
                             else "Pending"
                         )
                     )
@@ -4691,211 +5159,187 @@ if course_data:
                     )
 
 
-                    already_saved = (
-                        st.session_state
-                        .last_saved_round_fingerprint
-                        == fingerprint
-                    )
+                    if player:
+
+                        try:
+
+                            player_id = (
+                                validate_round_before_save(
+                                    player,
+                                    holes_played,
+                                    course_rating,
+                                    slope_rating,
+                                    course_par,
+                                    gross_score,
+                                    adjusted_score
+                                )
+                            )
 
 
-                    if st.button(
-                        "Save round",
-                        use_container_width=True,
-                        type="primary",
-                        disabled=
-                            already_saved,
-                        key=
-                            "save_hole_round"
-                    ):
+                            record = {
 
-                        if not player:
+                                "player_id":
+                                    player_id,
+
+                                "date_played":
+                                    date_played.isoformat(),
+
+                                "holes":
+                                    int(
+                                        holes_played
+                                    ),
+
+                                "nine":
+                                    nine_choice,
+
+                                "golf_course":
+                                    club_name,
+
+                                "course_layout":
+                                    course_layout,
+
+                                "course_api_id":
+                                    str(
+                                        course_id
+                                    ),
+
+                                "tees":
+                                    selected_tee_name,
+
+                                "course_rating":
+                                    float(
+                                        course_rating
+                                    ),
+
+                                "slope_rating":
+                                    int(
+                                        slope_rating
+                                    ),
+
+                                "par":
+                                    int(
+                                        course_par
+                                    ),
+
+                                "gross_score":
+                                    int(
+                                        gross_score
+                                    ),
+
+                                "adjusted_score":
+                                    int(
+                                        adjusted_score
+                                    ),
+
+                                "round_rating":
+                                    (
+                                        round(
+                                            float(
+                                                round_rating
+                                            ),
+                                            1
+                                        )
+
+                                        if (
+                                            round_rating
+                                            is not None
+                                        )
+
+                                        else None
+                                    ),
+
+                                "entry_method":
+                                    "Hole-by-hole",
+
+                                "hole_scores":
+                                    raw_scores,
+
+                                "expected_nine":
+                                    (
+                                        float(
+                                            expected_nine
+                                        )
+
+                                        if (
+                                            expected_nine
+                                            is not None
+                                        )
+
+                                        else None
+                                    )
+                            }
+
+
+                            summary = {
+
+                                "player":
+                                    player,
+
+                                "course":
+                                    (
+                                        st.session_state
+                                        .selected_course_short_label
+                                        or club_name
+                                    ),
+
+                                "gross_score":
+                                    gross_score,
+
+                                "round_rating":
+                                    (
+                                        round(
+                                            float(
+                                                round_rating
+                                            ),
+                                            1
+                                        )
+
+                                        if (
+                                            round_rating
+                                            is not None
+                                        )
+
+                                        else None
+                                    )
+                            }
+
+
+                            show_save_controls(
+                                record=
+                                    record,
+                                fingerprint=
+                                    fingerprint,
+                                summary=
+                                    summary,
+                                save_key=
+                                    "save_hole_round",
+                                confirm_key=
+                                    "confirm_duplicate_hole",
+                                cancel_key=
+                                    "cancel_duplicate_hole"
+                            )
+
+
+                        except RoundValidationError as error:
+
+                            st.error(
+                                str(error)
+                            )
+
+
+                    else:
+
+                        if st.button(
+                            "Save round",
+                            use_container_width=True,
+                            type="primary",
+                            key=
+                                "save_hole_round_without_player"
+                        ):
 
                             st.error(
                                 "Please select a player."
                             )
-
-
-                        else:
-
-                            try:
-
-                                player_id = (
-                                    validate_round_before_save(
-                                        player,
-                                        holes_played,
-                                        course_rating,
-                                        slope_rating,
-                                        course_par,
-                                        gross_score,
-                                        adjusted_score
-                                    )
-                                )
-
-
-                                record = {
-
-                                    "player_id":
-                                        player_id,
-
-                                    "date_played":
-                                        date_played.isoformat(),
-
-                                    "holes":
-                                        int(
-                                            holes_played
-                                        ),
-
-                                    "nine":
-                                        nine_choice,
-
-                                    "golf_course":
-                                        club_name,
-
-                                    "course_layout":
-                                        course_layout,
-
-                                    "course_api_id":
-                                        str(
-                                            course_id
-                                        ),
-
-                                    "tees":
-                                        selected_tee_name,
-
-                                    "course_rating":
-                                        float(
-                                            course_rating
-                                        ),
-
-                                    "slope_rating":
-                                        int(
-                                            slope_rating
-                                        ),
-
-                                    "par":
-                                        int(
-                                            course_par
-                                        ),
-
-                                    "gross_score":
-                                        int(
-                                            gross_score
-                                        ),
-
-                                    "adjusted_score":
-                                        int(
-                                            adjusted_score
-                                        ),
-
-                                    "round_rating":
-                                        (
-                                            round(
-                                                float(
-                                                    round_rating
-                                                ),
-                                                1
-                                            )
-                                            if (
-                                                round_rating
-                                                is not None
-                                            )
-                                            else None
-                                        ),
-
-                                    "entry_method":
-                                        "Hole-by-hole",
-
-                                    "hole_scores":
-                                        raw_scores,
-
-                                    "expected_nine":
-                                        (
-                                            float(
-                                                expected_nine
-                                            )
-                                            if (
-                                                expected_nine
-                                                is not None
-                                            )
-                                            else None
-                                        )
-                                }
-
-
-                                save_round_to_database(
-                                    record
-                                )
-
-
-                                st.session_state.last_saved_round_fingerprint = (
-                                    fingerprint
-                                )
-
-
-                                st.session_state.saved_round_summary = {
-
-                                    "player":
-                                        player,
-
-                                    "course":
-                                        (
-                                            st.session_state
-                                            .selected_course_short_label
-                                            or club_name
-                                        ),
-
-                                    "gross_score":
-                                        gross_score,
-
-                                    "round_rating":
-                                        (
-                                            round(
-                                                float(
-                                                    round_rating
-                                                ),
-                                                1
-                                            )
-                                            if (
-                                                round_rating
-                                                is not None
-                                            )
-                                            else None
-                                        )
-                                }
-
-
-                                load_rounds_from_database.clear()
-
-                                st.rerun()
-
-
-                            except RoundValidationError as error:
-
-                                st.error(
-                                    str(error)
-                                )
-
-
-                            except DuplicateRoundError:
-
-                                st.warning(
-                                    "This round appears to "
-                                    "have already been saved."
-                                )
-
-
-                            except (
-                                requests.exceptions
-                                .RequestException
-                            ) as error:
-
-                                st.error(
-                                    "The round could not be saved."
-                                )
-
-                                st.caption(
-                                    str(error)
-                                )
 
 
 # =========================================================
@@ -4933,8 +5377,10 @@ else:
 
     players_with_scores = [
         name
+
         for name
         in AVAILABLE_PLAYERS
+
         if name in (
             rounds_df[
                 "Player"
@@ -4972,6 +5418,7 @@ else:
                 )
                 or 0
             )
+
             for r
             in player_record
         )
@@ -5018,8 +5465,10 @@ else:
             ) = handicap_calculation(
                 [
                     x
+
                     for x
                     in effective_ratings
+
                     if x is not None
                 ]
             )
@@ -5299,8 +5748,10 @@ with st.expander(
                     r.get(
                         "Player"
                     )
+
                     for r
                     in admin_rounds
+
                     if r.get(
                         "Player"
                     )
@@ -5487,6 +5938,10 @@ with st.expander(
                                     None
                                 )
 
+                                st.session_state.pending_duplicate_fingerprint = (
+                                    None
+                                )
+
                                 load_rounds_from_database.clear()
 
                                 st.rerun()
@@ -5541,8 +5996,10 @@ with st.expander(
 
                 filtered_rounds = [
                     r
+
                     for r
                     in admin_rounds
+
                     if (
                         r.get(
                             "Player"
@@ -5637,8 +6094,10 @@ with st.expander(
                     ].get(
                         "ID"
                     )
+
                     for label
                     in selected_bulk_labels
+
                     if (
                         bulk_options[
                             label
@@ -5684,11 +6143,13 @@ with st.expander(
                     same_pending_selection = (
                         set(
                             str(value)
+
                             for value
                             in pending_ids
                         )
                         == set(
                             str(value)
+
                             for value
                             in selected_bulk_ids
                         )
@@ -5773,6 +6234,10 @@ with st.expander(
                                         None
                                     )
 
+                                    st.session_state.pending_duplicate_fingerprint = (
+                                        None
+                                    )
+
                                     load_rounds_from_database.clear()
 
                                     st.rerun()
@@ -5825,8 +6290,10 @@ with st.expander(
 
                 player_rounds_to_delete = [
                     r
+
                     for r
                     in admin_rounds
+
                     if (
                         r.get(
                             "Player"
@@ -5840,8 +6307,10 @@ with st.expander(
                     r.get(
                         "ID"
                     )
+
                     for r
                     in player_rounds_to_delete
+
                     if (
                         r.get(
                             "ID"
@@ -5901,12 +6370,14 @@ with st.expander(
 
                     and set(
                         str(value)
+
                         for value
                         in st.session_state
                         .pending_bulk_delete_ids
                     )
                     == set(
                         str(value)
+
                         for value
                         in player_round_ids
                     )
@@ -5983,6 +6454,10 @@ with st.expander(
                                 )
 
                                 st.session_state.last_saved_round_fingerprint = (
+                                    None
+                                )
+
+                                st.session_state.pending_duplicate_fingerprint = (
                                     None
                                 )
 
