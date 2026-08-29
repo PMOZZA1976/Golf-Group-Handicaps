@@ -572,12 +572,9 @@ DEFAULT_SESSION_VALUES = {
     "selected_player_entry":
         None,
 
-    # Actual state of the lower Player Handicaps selectbox
     "record_player_widget":
         None,
 
-    # One-time instruction to synchronise the lower
-    # Player Handicaps selector with Add Round
     "pending_record_player_sync":
         None,
 
@@ -2200,9 +2197,20 @@ def get_player_dashboard_stats(
             - previous_three_average
         )
 
-    gross_scores = []
+    # -----------------------------------------------------
+    # AVERAGE GROSS - LAST 5 18-HOLE ROUNDS ONLY
+    # -----------------------------------------------------
+
+    gross_scores_18 = []
 
     for round_item in player_record:
+
+        holes = int(
+            round_item.get(
+                "Holes"
+            )
+            or 0
+        )
 
         gross = (
             round_item.get(
@@ -2211,7 +2219,8 @@ def get_player_dashboard_stats(
         )
 
         if (
-            gross is not None
+            holes == 18
+            and gross is not None
             and pd.notna(
                 gross
             )
@@ -2219,7 +2228,7 @@ def get_player_dashboard_stats(
 
             try:
 
-                gross_scores.append(
+                gross_scores_18.append(
                     int(
                         gross
                     )
@@ -2232,20 +2241,20 @@ def get_player_dashboard_stats(
 
                 pass
 
-    last_five_gross = (
-        gross_scores[-5:]
+    last_five_gross_18 = (
+        gross_scores_18[-5:]
     )
 
     average_gross_last_five = (
         (
             sum(
-                last_five_gross
+                last_five_gross_18
             )
             / len(
-                last_five_gross
+                last_five_gross_18
             )
         )
-        if last_five_gross
+        if last_five_gross_18
         else None
     )
 
@@ -2901,8 +2910,6 @@ def complete_round_save(
         summary
     )
 
-    # Keep the player whose round was just saved selected
-    # in both Add Round and Player Handicaps after rerun.
     saved_player = (
         summary.get(
             "player"
@@ -3176,7 +3183,6 @@ if st.session_state.player_menu_open:
                 player_name
             )
 
-            # Synchronise Player Handicaps on the next render.
             st.session_state.pending_record_player_sync = (
                 player_name
             )
@@ -4850,12 +4856,6 @@ else:
 
     else:
 
-        # =====================================================
-        # PLAYER HANDICAP VIEW
-        # =====================================================
-
-        # Apply any pending one-time synchronisation BEFORE
-        # rendering the actual selectbox.
         pending_record_player = (
             st.session_state
             .pending_record_player_sync
@@ -4875,8 +4875,6 @@ else:
                 None
             )
 
-        # If a previously selected player no longer has any
-        # rounds, clear the lower selector.
         current_record_player = (
             st.session_state
             .record_player_widget
@@ -4910,20 +4908,12 @@ else:
                 "record_player_widget"
         )
 
-        # =====================================================
-        # NO PLAYER SELECTED
-        # =====================================================
-
         if record_player is None:
 
             st.info(
                 "Select a player to view their Handicap Index "
                 "and scoring record."
             )
-
-        # =====================================================
-        # PLAYER SELECTED
-        # =====================================================
 
         else:
 
@@ -4949,10 +4939,6 @@ else:
                 )
             )
 
-            # =================================================
-            # CURRENT HANDICAP
-            # =================================================
-
             record_hi = None
 
             explanation = ""
@@ -4973,10 +4959,6 @@ else:
                         if x is not None
                     ]
                 )
-
-            # =================================================
-            # PLAYER SUMMARY
-            # =================================================
 
             dashboard = (
                 get_player_dashboard_stats(
@@ -5072,7 +5054,7 @@ else:
                 )
 
                 st.metric(
-                    "Avg gross — last 5",
+                    "Avg gross — last 5 (18H)",
                     (
                         f"{average_gross:.1f}"
                         if average_gross is not None
@@ -5083,12 +5065,9 @@ else:
             st.caption(
                 "Recent RR average uses the latest 3 valid "
                 "Round Ratings. The change compares them with "
-                "the previous 3 — a lower Round Rating is better."
+                "the previous 3 — a lower Round Rating is better. "
+                "Average gross uses the latest 5 18-hole rounds only."
             )
-
-            # =================================================
-            # BUILDING HANDICAP
-            # =================================================
 
             if (
                 record_completed_holes
@@ -5114,10 +5093,6 @@ else:
 
                 show_54_hole_info()
 
-            # =================================================
-            # ESTABLISHED HANDICAP
-            # =================================================
-
             else:
 
                 if (
@@ -5139,10 +5114,6 @@ else:
                         "There is not yet enough valid rating "
                         "information to calculate a Handicap Index."
                     )
-
-            # =================================================
-            # SCORING RECORD
-            # =================================================
 
             display_rows = []
 
@@ -5412,10 +5383,6 @@ with st.expander(
                 key="admin_delete_mode"
             )
 
-            # =================================================
-            # SINGLE ROUND
-            # =================================================
-
             if (
                 delete_mode
                 == "Single round"
@@ -5571,10 +5538,6 @@ with st.expander(
                             st.session_state.pending_delete_round_id = None
 
                             st.rerun()
-
-            # =================================================
-            # MULTIPLE ROUNDS
-            # =================================================
 
             elif (
                 delete_mode
@@ -5807,10 +5770,6 @@ with st.expander(
                                 st.session_state.pending_bulk_delete_ids = []
 
                                 st.rerun()
-
-            # =================================================
-            # ALL ROUNDS FOR ONE PLAYER
-            # =================================================
 
             else:
 
