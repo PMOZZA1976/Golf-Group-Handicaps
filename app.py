@@ -572,7 +572,8 @@ DEFAULT_SESSION_VALUES = {
     "selected_player_entry":
         None,
 
-    "record_player_selection":
+    # Dedicated widget state for lower player selector
+    "record_player_selector":
         None,
 
     "player_menu_open":
@@ -2957,7 +2958,9 @@ if st.session_state.player_menu_open:
                 player_name
             )
 
-            st.session_state.record_player_selection = (
+            # Synchronise the lower Player Handicaps selector
+            # with the player selected here.
+            st.session_state.record_player_selector = (
                 player_name
             )
 
@@ -4633,25 +4636,30 @@ else:
         # =====================================================
         # PLAYER HANDICAP VIEW
         #
-        # No player is selected by default.
-        # Selecting a player in Add Round selects the same
-        # player here.
+        # Fresh session:
+        #   Select player
+        #
+        # Select player in Add Round:
+        #   This selector immediately follows that player.
+        #
+        # Manual changes here still remain possible.
         # =====================================================
 
         current_record_player = (
             st.session_state
-            .record_player_selection
+            .record_player_selector
         )
 
-        # Clear any invalid/stale value instead of falling
-        # back to the first player in the list.
+        # If a saved selection is no longer a player with
+        # recorded scores, clear it instead of defaulting
+        # to the first player.
         if (
             current_record_player is not None
             and current_record_player
             not in players_with_scores
         ):
 
-            st.session_state.record_player_selection = (
+            st.session_state.record_player_selector = (
                 None
             )
 
@@ -4670,7 +4678,7 @@ else:
                     else value
                 ),
             key=
-                "record_player_selection"
+                "record_player_selector"
         )
 
         # =====================================================
@@ -4745,8 +4753,7 @@ else:
                 ) = handicap_calculation(
                     [
                         x
-                        for x
-                        in effective_ratings
+                        for x in effective_ratings
                         if x is not None
                     ]
                 )
@@ -5467,7 +5474,8 @@ with st.expander(
                     r.get(
                         "ID"
                     )
-                    for r in player_rounds_to_delete
+                    for r
+                    in player_rounds_to_delete
                     if (
                         r.get(
                             "ID"
