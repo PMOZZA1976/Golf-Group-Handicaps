@@ -576,9 +576,6 @@ DEFAULT_SESSION_VALUES = {
     "selected_player_entry":
         None,
 
-    # NEW:
-    # Keeps the lower Player Handicaps selector aligned
-    # with the player selected in Add Round.
     "record_player_selection":
         None,
 
@@ -3167,9 +3164,6 @@ if (
                 player_name
             )
 
-            # NEW:
-            # Selecting a player for Add Round also makes that
-            # player the active Player Handicaps view.
             st.session_state.record_player_selection = (
                 player_name
             )
@@ -4027,6 +4021,20 @@ if course_data:
                                 )
                             )
 
+                            # ---------------------------------
+                            # Recalculate status at save time
+                            # ---------------------------------
+
+                            save_rating_status = (
+                                determine_nine_rating_status(
+                                    known_rating,
+                                    course_rating,
+                                    slope_rating
+                                )
+                                if holes_played == 9
+                                else None
+                            )
+
                             record = {
 
                                 "player_id":
@@ -4068,14 +4076,7 @@ if course_data:
                                     ),
 
                                 "rating_status":
-                                    (
-                                        rating_status
-                                        if (
-                                            holes_played
-                                            == 9
-                                        )
-                                        else None
-                                    ),
+                                    save_rating_status,
 
                                 "par":
                                     int(
@@ -4809,6 +4810,20 @@ if course_data:
                                 )
                             )
 
+                            # ---------------------------------
+                            # Recalculate status at save time
+                            # ---------------------------------
+
+                            save_rating_status = (
+                                determine_nine_rating_status(
+                                    known_rating,
+                                    course_rating,
+                                    slope_rating
+                                )
+                                if holes_played == 9
+                                else None
+                            )
+
                             record = {
 
                                 "player_id":
@@ -4850,14 +4865,7 @@ if course_data:
                                     ),
 
                                 "rating_status":
-                                    (
-                                        rating_status
-                                        if (
-                                            holes_played
-                                            == 9
-                                        )
-                                        else None
-                                    ),
+                                    save_rating_status,
 
                                 "par":
                                     int(
@@ -5025,10 +5033,6 @@ else:
         )
 
     else:
-
-        # =====================================================
-        # KEEP LOWER PLAYER VIEW IN SYNC WITH ADD ROUND PLAYER
-        # =====================================================
 
         current_record_player = (
             st.session_state
@@ -5431,10 +5435,6 @@ with st.expander(
                     "admin_delete_mode"
             )
 
-            # =================================================
-            # SINGLE ROUND
-            # =================================================
-
             if (
                 delete_mode
                 == "Single round"
@@ -5615,10 +5615,6 @@ with st.expander(
                             )
 
                             st.rerun()
-
-            # =================================================
-            # MULTIPLE ROUNDS FOR ONE PLAYER
-            # =================================================
 
             elif (
                 delete_mode
@@ -5884,10 +5880,6 @@ with st.expander(
                                 )
 
                                 st.rerun()
-
-            # =================================================
-            # ALL ROUNDS FOR ONE PLAYER
-            # =================================================
 
             else:
 
