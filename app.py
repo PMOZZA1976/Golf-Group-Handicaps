@@ -2187,7 +2187,7 @@ if course_data:
 
     else:
 
-        tee_names = [
+                tee_names = [
             tee.get(
                 "tee_name",
                 "Unnamed tee"
@@ -2196,18 +2196,26 @@ if course_data:
         ]
 
         # Default to Yellow tees where available
-default_tee_index = 0
+        default_tee_index = 0
 
-for i, tee_name in enumerate(tee_names):
-    if "yellow" in tee_name.lower():
-        default_tee_index = i
-        break
+        for i, tee_name in enumerate(tee_names):
+            if "yellow" in tee_name.lower():
+                default_tee_index = i
+                break
 
-selected_tee_name = st.selectbox(
-    "Tees used",
-    tee_names,
-    index=default_tee_index
-)
+        selected_tee_name = st.selectbox(
+            "Tees used",
+            tee_names,
+            index=default_tee_index
+        )
+
+        tee_index = tee_names.index(
+            selected_tee_name
+        )
+
+        selected_tee = male_tees[
+            tee_index
+        ]
 
         tee_index = tee_names.index(
             selected_tee_name
