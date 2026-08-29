@@ -572,7 +572,6 @@ DEFAULT_SESSION_VALUES = {
     "selected_player_entry":
         None,
 
-    # Dedicated widget state for lower player selector
     "record_player_selector":
         None,
 
@@ -742,17 +741,14 @@ def delete_rounds_from_database(
         block_size
     ):
 
-        block = (
-            clean_ids[
-                start:
-                start + block_size
-            ]
-        )
+        block = clean_ids[
+            start:
+            start + block_size
+        ]
 
         id_list = ",".join(
             str(round_id)
-            for round_id
-            in block
+            for round_id in block
         )
 
         response = requests.delete(
@@ -2100,6 +2096,204 @@ def get_player_handicap(
     return handicap_index
 
 
+# =========================================================
+# PLAYER DASHBOARD
+# =========================================================
+
+def get_player_dashboard_stats(
+    player_record,
+    effective_ratings
+):
+
+    combined = []
+
+    for round_item, effective_rating in zip(
+        player_record,
+        effective_ratings
+    ):
+
+        combined.append({
+            "round":
+                round_item,
+
+            "rating":
+                effective_rating
+        })
+
+    total_rounds = len(
+        player_record
+    )
+
+    valid_ratings = [
+        float(
+            item["rating"]
+        )
+        for item in combined
+        if (
+            item["rating"] is not None
+            and pd.notna(
+                item["rating"]
+            )
+        )
+    ]
+
+    last_five_ratings = (
+        valid_ratings[-5:]
+    )
+
+    best_recent_rating = (
+        min(
+            last_five_ratings
+        )
+        if last_five_ratings
+        else None
+    )
+
+    recent_three_average = None
+
+    previous_three_average = None
+
+    trend_delta = None
+
+    if len(
+        valid_ratings
+    ) >= 3:
+
+        recent_three = (
+            valid_ratings[-3:]
+        )
+
+        recent_three_average = (
+            sum(
+                recent_three
+            )
+            / len(
+                recent_three
+            )
+        )
+
+    if len(
+        valid_ratings
+    ) >= 6:
+
+        previous_three = (
+            valid_ratings[-6:-3]
+        )
+
+        previous_three_average = (
+            sum(
+                previous_three
+            )
+            / len(
+                previous_three
+            )
+        )
+
+        trend_delta = (
+            recent_three_average
+            - previous_three_average
+        )
+
+    gross_scores = []
+
+    for round_item in player_record:
+
+        gross = (
+            round_item.get(
+                "Gross Score"
+            )
+        )
+
+        if (
+            gross is not None
+            and pd.notna(
+                gross
+            )
+        ):
+
+            try:
+
+                gross_scores.append(
+                    int(
+                        gross
+                    )
+                )
+
+            except (
+                TypeError,
+                ValueError
+            ):
+
+                pass
+
+    last_five_gross = (
+        gross_scores[-5:]
+    )
+
+    average_gross_last_five = (
+        (
+            sum(
+                last_five_gross
+            )
+            / len(
+                last_five_gross
+            )
+        )
+        if last_five_gross
+        else None
+    )
+
+    return {
+
+        "total_rounds":
+            total_rounds,
+
+        "recent_three_average":
+            (
+                round(
+                    recent_three_average,
+                    1
+                )
+                if recent_three_average
+                is not None
+                else None
+            ),
+
+        "trend_delta":
+            (
+                round(
+                    trend_delta,
+                    1
+                )
+                if trend_delta
+                is not None
+                else None
+            ),
+
+        "best_recent_rating":
+            (
+                round(
+                    best_recent_rating,
+                    1
+                )
+                if best_recent_rating
+                is not None
+                else None
+            ),
+
+        "average_gross_last_five":
+            (
+                round(
+                    average_gross_last_five,
+                    1
+                )
+                if average_gross_last_five
+                is not None
+                else None
+            )
+    }
+
+
 def calculate_course_handicap(
     handicap_index,
     slope_rating,
@@ -2958,8 +3152,6 @@ if st.session_state.player_menu_open:
                 player_name
             )
 
-            # Synchronise the lower Player Handicaps selector
-            # with the player selected here.
             st.session_state.record_player_selector = (
                 player_name
             )
@@ -4633,26 +4825,11 @@ else:
 
     else:
 
-        # =====================================================
-        # PLAYER HANDICAP VIEW
-        #
-        # Fresh session:
-        #   Select player
-        #
-        # Select player in Add Round:
-        #   This selector immediately follows that player.
-        #
-        # Manual changes here still remain possible.
-        # =====================================================
-
         current_record_player = (
             st.session_state
             .record_player_selector
         )
 
-        # If a saved selection is no longer a player with
-        # recorded scores, clear it instead of defaulting
-        # to the first player.
         if (
             current_record_player is not None
             and current_record_player
@@ -4720,6 +4897,147 @@ else:
                 )
             )
 
+            # =================================================
+            # CURRENT HANDICAP
+            # =================================================
+
+            record_hi = None
+
+            explanation = ""
+
+            if (
+                record_completed_holes
+                >= 54
+            ):
+
+                (
+                    record_hi,
+                    _,
+                    explanation
+                ) = handicap_calculation(
+                    [
+                        x
+                        for x in effective_ratings
+                        if x is not None
+                    ]
+                )
+
+            # =================================================
+            # PLAYER SUMMARY
+            # =================================================
+
+            dashboard = (
+                get_player_dashboard_stats(
+                    player_record,
+                    effective_ratings
+                )
+            )
+
+            st.markdown(
+                "### Player Summary"
+            )
+
+            d1, d2 = (
+                st.columns(2)
+            )
+
+            with d1:
+
+                st.metric(
+                    "Handicap Index",
+                    (
+                        f"{record_hi:.1f}"
+                        if record_hi is not None
+                        else "Building"
+                    )
+                )
+
+            with d2:
+
+                st.metric(
+                    "Rounds recorded",
+                    dashboard[
+                        "total_rounds"
+                    ]
+                )
+
+            d3, d4, d5 = (
+                st.columns(3)
+            )
+
+            with d3:
+
+                recent_average = (
+                    dashboard[
+                        "recent_three_average"
+                    ]
+                )
+
+                trend_delta = (
+                    dashboard[
+                        "trend_delta"
+                    ]
+                )
+
+                st.metric(
+                    "Recent RR avg",
+                    (
+                        f"{recent_average:.1f}"
+                        if recent_average is not None
+                        else "N/A"
+                    ),
+                    delta=(
+                        f"{trend_delta:+.1f}"
+                        if trend_delta is not None
+                        else None
+                    ),
+                    delta_color="inverse"
+                )
+
+            with d4:
+
+                best_recent = (
+                    dashboard[
+                        "best_recent_rating"
+                    ]
+                )
+
+                st.metric(
+                    "Best recent RR",
+                    (
+                        f"{best_recent:.1f}"
+                        if best_recent is not None
+                        else "N/A"
+                    )
+                )
+
+            with d5:
+
+                average_gross = (
+                    dashboard[
+                        "average_gross_last_five"
+                    ]
+                )
+
+                st.metric(
+                    "Avg gross — last 5",
+                    (
+                        f"{average_gross:.1f}"
+                        if average_gross is not None
+                        else "N/A"
+                    )
+                )
+
+            st.caption(
+                "Recent RR average uses the latest 3 valid "
+                "Round Ratings. The change compares them with "
+                "the previous 3 — a lower Round Rating is better."
+            )
+
+            # =================================================
+            # BUILDING HANDICAP
+            # =================================================
+
             if (
                 record_completed_holes
                 < 54
@@ -4744,32 +5062,19 @@ else:
 
                 show_54_hole_info()
 
-            else:
+            # =================================================
+            # ESTABLISHED HANDICAP
+            # =================================================
 
-                (
-                    record_hi,
-                    _,
-                    explanation
-                ) = handicap_calculation(
-                    [
-                        x
-                        for x in effective_ratings
-                        if x is not None
-                    ]
-                )
+            else:
 
                 if (
                     record_hi
                     is not None
                 ):
 
-                    st.metric(
-                        "Handicap Index",
-                        f"{record_hi:.1f}"
-                    )
-
                     st.caption(
-                        "Unofficial WHS-based calculation"
+                        "Unofficial WHS-based Handicap Index"
                     )
 
                     st.write(
@@ -4782,6 +5087,10 @@ else:
                         "There is not yet enough valid rating "
                         "information to calculate a Handicap Index."
                     )
+
+            # =================================================
+            # SCORING RECORD
+            # =================================================
 
             display_rows = []
 
