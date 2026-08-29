@@ -342,6 +342,10 @@ SUPABASE_KEY = (
     st.secrets["SUPABASE_KEY"]
 )
 
+SUPABASE_SERVICE_ROLE_KEY = (
+    st.secrets["SUPABASE_SERVICE_ROLE_KEY"]
+)
+
 ADMIN_PIN = (
     st.secrets["ADMIN_PIN"]
 )
@@ -353,9 +357,24 @@ GOLF_HEADERS = {
 }
 
 
+# Normal application access.
 SUPABASE_HEADERS = {
     "apikey":
         SUPABASE_KEY,
+
+    "Content-Type":
+        "application/json"
+}
+
+
+# Privileged server-side access.
+#
+# IMPORTANT:
+# New sb_secret_ Supabase keys belong in the apikey header.
+# They must NOT be exposed in client-side code or GitHub.
+SUPABASE_ADMIN_HEADERS = {
+    "apikey":
+        SUPABASE_SERVICE_ROLE_KEY,
 
     "Content-Type":
         "application/json"
@@ -563,6 +582,10 @@ class RoundValidationError(Exception):
     pass
 
 
+class DuplicateManualCourseError(Exception):
+    pass
+
+
 # =========================================================
 # SESSION STATE
 # =========================================================
@@ -612,7 +635,10 @@ DEFAULT_SESSION_VALUES = {
         None,
 
     "pending_bulk_delete_ids":
-        []
+        [],
+
+    "pending_delete_manual_course_id":
+        None
 }
 
 
@@ -624,7 +650,41 @@ for key, value in DEFAULT_SESSION_VALUES.items():
 
 
 # =========================================================
-# SUPABASE
+# GENERIC HELPERS
+# =========================================================
+
+def normalise_text(
+    value
+):
+
+    return (
+        str(
+            value
+            or ""
+        )
+        .strip()
+        .lower()
+    )
+
+
+def clean_optional_text(
+    value
+):
+
+    value = str(
+        value
+        or ""
+    ).strip()
+
+    return (
+        value
+        if value
+        else None
+    )
+
+
+# =========================================================
+# SUPABASE - PLAYERS / ROUNDS
 # =========================================================
 
 @st.cache_data(
@@ -711,7 +771,7 @@ def delete_round_from_database(
     response = requests.delete(
         f"{SUPABASE_URL}/rest/v1/rounds",
         headers={
-            **SUPABASE_HEADERS,
+            **SUPABASE_ADMIN_HEADERS,
             "Prefer": "return=minimal"
         },
         params={
@@ -757,7 +817,7 @@ def delete_rounds_from_database(
         response = requests.delete(
             f"{SUPABASE_URL}/rest/v1/rounds",
             headers={
-                **SUPABASE_HEADERS,
+                **SUPABASE_ADMIN_HEADERS,
                 "Prefer": "return=minimal"
             },
             params={
@@ -767,6 +827,241 @@ def delete_rounds_from_database(
         )
 
         response.raise_for_status()
+
+
+# =========================================================
+# SUPABASE - MANUAL COURSES
+# =========================================================
+
+@st.cache_data(
+    ttl=60,
+    show_spinner=False
+)
+def load_manual_courses(
+    include_inactive=False
+):
+
+    params = {
+        "select": "*",
+        "order":
+            "club_name.asc,"
+            "course_name.asc,"
+            "tee_name.asc"
+    }
+
+    if not include_inactive:
+
+        params[
+            "active"
+        ] = "eq.true"
+
+    response = requests.get(
+        f"{SUPABASE_URL}/rest/v1/manual_courses",
+        headers=SUPABASE_ADMIN_HEADERS,
+        params=params,
+        timeout=15
+    )
+
+    response.raise_for_status()
+
+    return response.json()
+
+
+def get_manual_course(
+    manual_course_id
+):
+
+    response = requests.get(
+        f"{SUPABASE_URL}/rest/v1/manual_courses",
+        headers=SUPABASE_ADMIN_HEADERS,
+        params={
+            "id":
+                f"eq.{manual_course_id}",
+
+            "select":
+                "*"
+        },
+        timeout=15
+    )
+
+    response.raise_for_status()
+
+    rows = response.json()
+
+    if not rows:
+
+        return None
+
+    return rows[0]
+
+
+def save_manual_course(
+    course_data
+):
+
+    response = requests.post(
+        f"{SUPABASE_URL}/rest/v1/manual_courses",
+        headers={
+            **SUPABASE_ADMIN_HEADERS,
+            "Prefer":
+                "return=representation"
+        },
+        json=course_data,
+        timeout=15
+    )
+
+    if response.status_code == 409:
+
+        raise DuplicateManualCourseError(
+            "That course, layout and tee combination "
+            "already exists."
+        )
+
+    if not response.ok:
+
+        text = (
+            response.text
+            .lower()
+        )
+
+        if (
+            "duplicate" in text
+            or "unique" in text
+        ):
+
+            raise DuplicateManualCourseError(
+                "That course, layout and tee combination "
+                "already exists."
+            )
+
+        response.raise_for_status()
+
+    load_manual_courses.clear()
+    search_courses.clear()
+    get_course_details.clear()
+
+    return response.json()
+
+
+def update_manual_course(
+    manual_course_id,
+    course_data
+):
+
+    response = requests.patch(
+        f"{SUPABASE_URL}/rest/v1/manual_courses",
+        headers={
+            **SUPABASE_ADMIN_HEADERS,
+            "Prefer":
+                "return=representation"
+        },
+        params={
+            "id":
+                f"eq.{manual_course_id}"
+        },
+        json={
+            **course_data,
+            "updated_at":
+                pd.Timestamp.utcnow().isoformat()
+        },
+        timeout=15
+    )
+
+    if response.status_code == 409:
+
+        raise DuplicateManualCourseError(
+            "That course, layout and tee combination "
+            "already exists."
+        )
+
+    if not response.ok:
+
+        text = (
+            response.text
+            .lower()
+        )
+
+        if (
+            "duplicate" in text
+            or "unique" in text
+        ):
+
+            raise DuplicateManualCourseError(
+                "That course, layout and tee combination "
+                "already exists."
+            )
+
+        response.raise_for_status()
+
+    load_manual_courses.clear()
+    search_courses.clear()
+    get_course_details.clear()
+
+    return response.json()
+
+
+def deactivate_manual_course(
+    manual_course_id
+):
+
+    response = requests.patch(
+        f"{SUPABASE_URL}/rest/v1/manual_courses",
+        headers={
+            **SUPABASE_ADMIN_HEADERS,
+            "Prefer":
+                "return=minimal"
+        },
+        params={
+            "id":
+                f"eq.{manual_course_id}"
+        },
+        json={
+            "active":
+                False,
+
+            "updated_at":
+                pd.Timestamp.utcnow().isoformat()
+        },
+        timeout=15
+    )
+
+    response.raise_for_status()
+
+    load_manual_courses.clear()
+    search_courses.clear()
+    get_course_details.clear()
+
+
+def reactivate_manual_course(
+    manual_course_id
+):
+
+    response = requests.patch(
+        f"{SUPABASE_URL}/rest/v1/manual_courses",
+        headers={
+            **SUPABASE_ADMIN_HEADERS,
+            "Prefer":
+                "return=minimal"
+        },
+        params={
+            "id":
+                f"eq.{manual_course_id}"
+        },
+        json={
+            "active":
+                True,
+
+            "updated_at":
+                pd.Timestamp.utcnow().isoformat()
+        },
+        timeout=15
+    )
+
+    response.raise_for_status()
+
+    load_manual_courses.clear()
+    search_courses.clear()
+    get_course_details.clear()
 
 
 # =========================================================
@@ -1081,43 +1376,409 @@ for row in database_rounds:
 
 
 # =========================================================
-# COURSE API
+# COURSE DATABASE
 # =========================================================
 
+def manual_course_group_key(
+    row
+):
+
+    return (
+        normalise_text(
+            row.get(
+                "club_name"
+            )
+        ),
+        normalise_text(
+            row.get(
+                "course_name"
+            )
+        ),
+        normalise_text(
+            row.get(
+                "city"
+            )
+        ),
+        normalise_text(
+            row.get(
+                "country"
+            )
+        )
+    )
+
+
+def generic_course_identity(
+    course
+):
+
+    return (
+        normalise_text(
+            course.get(
+                "club_name"
+            )
+        ),
+        normalise_text(
+            course.get(
+                "course_name"
+            )
+        )
+    )
+
+
+def build_manual_search_results(
+    rows,
+    search_text
+):
+
+    query = (
+        normalise_text(
+            search_text
+        )
+    )
+
+    grouped = {}
+
+    for row in rows:
+
+        searchable = (
+            " ".join(
+                [
+                    normalise_text(
+                        row.get(
+                            "club_name"
+                        )
+                    ),
+                    normalise_text(
+                        row.get(
+                            "course_name"
+                        )
+                    ),
+                    normalise_text(
+                        row.get(
+                            "city"
+                        )
+                    ),
+                    normalise_text(
+                        row.get(
+                            "country"
+                        )
+                    )
+                ]
+            )
+        )
+
+        if query not in searchable:
+
+            continue
+
+        group_key = (
+            manual_course_group_key(
+                row
+            )
+        )
+
+        if group_key in grouped:
+            continue
+
+        grouped[
+            group_key
+        ] = {
+
+            "id":
+                f"manual:{row['id']}",
+
+            "club_name":
+                row.get(
+                    "club_name"
+                ),
+
+            "course_name":
+                (
+                    row.get(
+                        "course_name"
+                    )
+                    or row.get(
+                        "club_name"
+                    )
+                ),
+
+            "location": {
+                "city":
+                    row.get(
+                        "city"
+                    ),
+
+                "country":
+                    row.get(
+                        "country"
+                    )
+            },
+
+            "_manual_course":
+                True,
+
+            "_manual_course_id":
+                row.get(
+                    "id"
+                )
+        }
+
+    return list(
+        grouped.values()
+    )
+
+
 @st.cache_data(
-    ttl=86400,
+    ttl=3600,
     show_spinner=False
 )
 def search_courses(
     search_text
 ):
 
-    response = requests.get(
-        f"{GOLF_API_BASE}/search",
-        headers=GOLF_HEADERS,
-        params={
-            "search_query": search_text
-        },
-        timeout=15
-    )
+    manual_results = []
 
-    response.raise_for_status()
+    api_results = []
+
+    # -----------------------------------------------------
+    # MANUAL SUPABASE COURSES
+    # -----------------------------------------------------
+
+    try:
+
+        manual_rows = (
+            load_manual_courses(
+                False
+            )
+        )
+
+        manual_results = (
+            build_manual_search_results(
+                manual_rows,
+                search_text
+            )
+        )
+
+    except requests.exceptions.RequestException:
+
+        manual_results = []
+
+    # -----------------------------------------------------
+    # EXTERNAL COURSE API
+    # -----------------------------------------------------
+
+    try:
+
+        response = requests.get(
+            f"{GOLF_API_BASE}/search",
+            headers=GOLF_HEADERS,
+            params={
+                "search_query":
+                    search_text
+            },
+            timeout=15
+        )
+
+        response.raise_for_status()
+
+        api_results = (
+            response.json().get(
+                "courses",
+                []
+            )
+        )
+
+    except requests.exceptions.RequestException:
+
+        api_results = []
+
+    # -----------------------------------------------------
+    # MANUAL COURSES TAKE PRIORITY
+    # -----------------------------------------------------
+
+    manual_identities = {
+        generic_course_identity(
+            course
+        )
+        for course in manual_results
+    }
+
+    filtered_api_results = []
+
+    for course in api_results:
+
+        identity = (
+            generic_course_identity(
+                course
+            )
+        )
+
+        if identity in manual_identities:
+            continue
+
+        filtered_api_results.append(
+            course
+        )
 
     return (
-        response.json().get(
-            "courses",
-            []
-        )
+        manual_results
+        + filtered_api_results
     )
 
 
 @st.cache_data(
-    ttl=86400,
+    ttl=3600,
     show_spinner=False
 )
 def get_course_details(
     course_id
 ):
+
+    course_id_text = (
+        str(
+            course_id
+        )
+    )
+
+    # -----------------------------------------------------
+    # MANUAL SUPABASE COURSE
+    # -----------------------------------------------------
+
+    if course_id_text.startswith(
+        "manual:"
+    ):
+
+        manual_id = (
+            course_id_text.split(
+                "manual:",
+                1
+            )[1]
+        )
+
+        selected_row = (
+            get_manual_course(
+                manual_id
+            )
+        )
+
+        if selected_row is None:
+
+            raise ValueError(
+                "The manual course could not be found."
+            )
+
+        selected_group_key = (
+            manual_course_group_key(
+                selected_row
+            )
+        )
+
+        all_manual_rows = (
+            load_manual_courses(
+                False
+            )
+        )
+
+        matching_rows = [
+            row
+            for row in all_manual_rows
+            if (
+                manual_course_group_key(
+                    row
+                )
+                == selected_group_key
+            )
+        ]
+
+        male_tees = []
+
+        for row in matching_rows:
+
+            male_tees.append({
+
+                "tee_name":
+                    row.get(
+                        "tee_name"
+                    ),
+
+                "course_rating":
+                    row.get(
+                        "course_rating"
+                    ),
+
+                "slope_rating":
+                    row.get(
+                        "slope_rating"
+                    ),
+
+                "par_total":
+                    row.get(
+                        "par_total"
+                    ),
+
+                "holes":
+                    (
+                        row.get(
+                            "hole_data"
+                        )
+                        or []
+                    ),
+
+                "_manual_tee_id":
+                    row.get(
+                        "id"
+                    )
+            })
+
+        return {
+
+            "id":
+                course_id_text,
+
+            "club_name":
+                selected_row.get(
+                    "club_name"
+                ),
+
+            "course_name":
+                (
+                    selected_row.get(
+                        "course_name"
+                    )
+                    or selected_row.get(
+                        "club_name"
+                    )
+                ),
+
+            "location": {
+                "city":
+                    selected_row.get(
+                        "city"
+                    ),
+
+                "country":
+                    selected_row.get(
+                        "country"
+                    )
+            },
+
+            "tees": {
+                "male":
+                    male_tees
+            },
+
+            "_manual_course":
+                True,
+
+            "_manual_course_id":
+                selected_row.get(
+                    "id"
+                )
+        }
+
+    # -----------------------------------------------------
+    # EXTERNAL COURSE API
+    # -----------------------------------------------------
 
     response = requests.get(
         f"{GOLF_API_BASE}/courses/{course_id}",
@@ -2153,9 +2814,7 @@ def get_player_dashboard_stats(
     )
 
     recent_three_average = None
-
     previous_three_average = None
-
     trend_delta = None
 
     if len(
@@ -2196,10 +2855,6 @@ def get_player_dashboard_stats(
             recent_three_average
             - previous_three_average
         )
-
-    # -----------------------------------------------------
-    # AVERAGE GROSS - LAST 5 18-HOLE ROUNDS ONLY
-    # -----------------------------------------------------
 
     gross_scores_18 = []
 
@@ -2481,6 +3136,12 @@ def build_course_labels(
 
         full = short
 
+    if course.get(
+        "_manual_course"
+    ):
+
+        full += " • Handicap Builder"
+
     return (
         short,
         full
@@ -2508,20 +3169,6 @@ def yellow_default_index(
             return i
 
     return 0
-
-
-def normalise_text(
-    value
-):
-
-    return (
-        str(
-            value
-            or ""
-        )
-        .strip()
-        .lower()
-    )
 
 
 def find_known_nine_rating(
@@ -2740,6 +3387,122 @@ def get_api_nine_par(
     return sum(
         pars
     )
+
+
+# =========================================================
+# ADMIN COURSE HELPERS
+# =========================================================
+
+def validate_admin_hole_data(
+    hole_data,
+    expected_par
+):
+
+    if len(
+        hole_data
+    ) != 18:
+
+        return (
+            False,
+            "Exactly 18 holes must be entered."
+        )
+
+    pars = [
+        int(
+            hole.get(
+                "par"
+            )
+        )
+        for hole in hole_data
+    ]
+
+    stroke_indexes = [
+        int(
+            hole.get(
+                "stroke_index"
+            )
+        )
+        for hole in hole_data
+    ]
+
+    if sum(
+        pars
+    ) != int(
+        expected_par
+    ):
+
+        return (
+            False,
+            (
+                f"The individual hole pars add up to "
+                f"{sum(pars)}, not {int(expected_par)}."
+            )
+        )
+
+    if set(
+        stroke_indexes
+    ) != set(
+        range(
+            1,
+            19
+        )
+    ):
+
+        return (
+            False,
+            (
+                "Stroke Index must contain every number "
+                "from 1 to 18 exactly once."
+            )
+        )
+
+    return (
+        True,
+        ""
+    )
+
+
+def manual_course_admin_label(
+    row
+):
+
+    label = (
+        str(
+            row.get(
+                "club_name"
+            )
+            or "Unnamed club"
+        )
+    )
+
+    if row.get(
+        "course_name"
+    ):
+
+        label += (
+            f" – "
+            f"{row['course_name']}"
+        )
+
+    label += (
+        f" • "
+        f"{row.get('tee_name')}"
+        f" • CR "
+        f"{row.get('course_rating')}"
+        f" • Slope "
+        f"{row.get('slope_rating')}"
+    )
+
+    if not row.get(
+        "active",
+        True
+    ):
+
+        label += (
+            " • INACTIVE"
+        )
+
+    return label
 
 
 # =========================================================
@@ -3394,11 +4157,21 @@ if st.session_state.course_menu_open:
                         )
                     ):
 
-                        loaded = (
-                            get_course_details(
-                                result_id
+                        try:
+
+                            loaded = (
+                                get_course_details(
+                                    result_id
+                                )
                             )
-                        )
+
+                        except ValueError as error:
+
+                            st.error(
+                                str(error)
+                            )
+
+                            st.stop()
 
                         st.session_state.selected_course_id = (
                             result_id
@@ -3595,7 +4368,6 @@ if course_data:
             else:
 
                 default_cr = None
-
                 default_slope = None
 
             api_nine_par = (
@@ -3697,14 +4469,24 @@ if course_data:
                         course_par
                     )
 
-                    st.caption(
-                        "From API"
-                    )
+                    if course_data.get(
+                        "_manual_course"
+                    ):
+
+                        st.caption(
+                            "From Handicap Builder"
+                        )
+
+                    else:
+
+                        st.caption(
+                            "From API"
+                        )
 
                 else:
 
                     st.warning(
-                        "9-hole Par is incomplete in the API."
+                        "9-hole Par is incomplete in the course data."
                     )
 
                     course_par = st.number_input(
@@ -3782,6 +4564,14 @@ if course_data:
             st.markdown(
                 "#### Course information"
             )
+
+            if course_data.get(
+                "_manual_course"
+            ):
+
+                st.caption(
+                    "Course information supplied by Handicap Builder."
+                )
 
             c1, c2, c3 = (
                 st.columns(3)
@@ -4224,22 +5014,17 @@ if course_data:
                 )
 
                 st.caption(
-                    "Par is taken automatically from the course "
-                    "API. Enter the Stroke Index exactly as shown "
-                    "on the scorecard. Stroke Index and score are "
-                    "deliberately left blank."
+                    "Par is taken automatically from the selected "
+                    "course data. Enter the Stroke Index exactly as "
+                    "shown on the scorecard. Stroke Index and score "
+                    "are deliberately left blank."
                 )
 
                 raw_scores = []
-
                 adjusted_scores = []
-
                 entered_stroke_indexes = []
-
                 entered_pars = []
-
                 adjustment_details = []
-
                 complete_holes = 0
 
                 for i in range(
@@ -4322,7 +5107,7 @@ if course_data:
                                         ),
                                     help=(
                                         "Par is unavailable "
-                                        "from the API for this hole."
+                                        "for this hole."
                                     ),
                                     key=(
                                         f"manual_par_"
@@ -4498,7 +5283,6 @@ if course_data:
                 )
 
                 si_valid = False
-
                 par_valid = False
 
                 if entry_complete:
@@ -4573,7 +5357,8 @@ if course_data:
                     st.info(
                         "Complete Stroke Index and Shots taken "
                         "for every hole. If Par is missing from "
-                        "the API for a hole, enter that Par manually."
+                        "the course data for a hole, enter that "
+                        "Par manually."
                     )
 
                 if (
@@ -4615,7 +5400,6 @@ if course_data:
                         )
 
                         round_rating = None
-
                         expected_nine = None
 
                     st.markdown(
@@ -5348,6 +6132,10 @@ with st.expander(
                     []
                 )
 
+                st.session_state.pending_delete_manual_course_id = (
+                    None
+                )
+
                 st.rerun()
 
             else:
@@ -5383,7 +6171,1206 @@ with st.expander(
 
             st.session_state.pending_bulk_delete_ids = []
 
+            st.session_state.pending_delete_manual_course_id = None
+
             st.rerun()
+
+        # =================================================
+        # ADMIN COURSE MANAGER
+        # =================================================
+
+        st.divider()
+
+        st.markdown(
+            "### Course Manager"
+        )
+
+        st.caption(
+            "Manual courses are stored in Supabase and appear "
+            "in the normal Golf Course search. Manual records "
+            "take priority over matching API records."
+        )
+
+        (
+            add_course_tab,
+            edit_course_tab,
+            inactive_course_tab
+        ) = st.tabs(
+            [
+                "Add course",
+                "Edit courses",
+                "Inactive"
+            ]
+        )
+
+        # -------------------------------------------------
+        # ADD COURSE
+        # -------------------------------------------------
+
+        with add_course_tab:
+
+            st.markdown(
+                "#### Add manual course / tee"
+            )
+
+            st.caption(
+                "Each tee is stored as a separate record. "
+                "If the same course has Yellow and White tees, "
+                "add each tee separately."
+            )
+
+            with st.form(
+                "admin_add_manual_course_form"
+            ):
+
+                add_club_name = (
+                    st.text_input(
+                        "Club name",
+                        placeholder=
+                            "e.g. Mijas Golf Club"
+                    )
+                )
+
+                add_course_name = (
+                    st.text_input(
+                        "Course / layout",
+                        placeholder=
+                            "e.g. Los Lagos"
+                    )
+                )
+
+                add_location_col1, add_location_col2 = (
+                    st.columns(2)
+                )
+
+                with add_location_col1:
+
+                    add_city = (
+                        st.text_input(
+                            "City",
+                            placeholder=
+                                "e.g. Mijas"
+                        )
+                    )
+
+                with add_location_col2:
+
+                    add_country = (
+                        st.text_input(
+                            "Country",
+                            value=
+                                "United Kingdom"
+                        )
+                    )
+
+                st.markdown(
+                    "#### Tee information"
+                )
+
+                add_tee_name = (
+                    st.text_input(
+                        "Tee colour / name",
+                        value=
+                            "Yellow"
+                    )
+                )
+
+                add_rating_col1, add_rating_col2, add_rating_col3 = (
+                    st.columns(3)
+                )
+
+                with add_rating_col1:
+
+                    add_course_rating = (
+                        st.number_input(
+                            "Course Rating",
+                            min_value=40.0,
+                            max_value=100.0,
+                            value=70.0,
+                            step=0.1,
+                            format="%.1f"
+                        )
+                    )
+
+                with add_rating_col2:
+
+                    add_slope_rating = (
+                        st.number_input(
+                            "Slope",
+                            min_value=55,
+                            max_value=155,
+                            value=113,
+                            step=1
+                        )
+                    )
+
+                with add_rating_col3:
+
+                    add_par_total = (
+                        st.number_input(
+                            "Par",
+                            min_value=50,
+                            max_value=90,
+                            value=72,
+                            step=1
+                        )
+                    )
+
+                add_source = (
+                    st.text_input(
+                        "Source",
+                        placeholder=
+                            "e.g. official club scorecard"
+                    )
+                )
+
+                add_notes = (
+                    st.text_input(
+                        "Notes",
+                        placeholder=
+                            "Optional"
+                    )
+                )
+
+                st.markdown(
+                    "#### Hole information"
+                )
+
+                st.caption(
+                    "Par is stored so Handicap Builder can use it "
+                    "during score entry. Stroke Index is also stored "
+                    "for reference, although players still enter SI "
+                    "from the scorecard during hole-by-hole entry."
+                )
+
+                add_hole_data = []
+
+                for add_hole_number in range(
+                    1,
+                    19
+                ):
+
+                    (
+                        add_hole_col1,
+                        add_hole_col2,
+                        add_hole_col3
+                    ) = st.columns(
+                        [
+                            1,
+                            1,
+                            1
+                        ]
+                    )
+
+                    with add_hole_col1:
+
+                        add_hole_par = (
+                            st.number_input(
+                                f"H{add_hole_number} Par",
+                                min_value=3,
+                                max_value=6,
+                                value=4,
+                                step=1,
+                                key=
+                                    f"add_course_par_{add_hole_number}"
+                            )
+                        )
+
+                    with add_hole_col2:
+
+                        add_hole_si = (
+                            st.number_input(
+                                f"H{add_hole_number} SI",
+                                min_value=1,
+                                max_value=18,
+                                value=
+                                    add_hole_number,
+                                step=1,
+                                key=
+                                    f"add_course_si_{add_hole_number}"
+                            )
+                        )
+
+                    with add_hole_col3:
+
+                        add_hole_metres = (
+                            st.number_input(
+                                f"H{add_hole_number} metres",
+                                min_value=0,
+                                max_value=700,
+                                value=0,
+                                step=1,
+                                key=
+                                    f"add_course_metres_{add_hole_number}"
+                            )
+                        )
+
+                    add_hole_data.append(
+                        {
+                            "hole":
+                                add_hole_number,
+
+                            "par":
+                                int(
+                                    add_hole_par
+                                ),
+
+                            "stroke_index":
+                                int(
+                                    add_hole_si
+                                ),
+
+                            "metres":
+                                (
+                                    int(
+                                        add_hole_metres
+                                    )
+                                    if add_hole_metres > 0
+                                    else None
+                                )
+                        }
+                    )
+
+                add_course_submitted = (
+                    st.form_submit_button(
+                        "Add course / tee",
+                        type="primary",
+                        use_container_width=True
+                    )
+                )
+
+                if add_course_submitted:
+
+                    if not (
+                        add_club_name.strip()
+                    ):
+
+                        st.error(
+                            "Enter the golf club name."
+                        )
+
+                    elif not (
+                        add_tee_name.strip()
+                    ):
+
+                        st.error(
+                            "Enter the tee colour or name."
+                        )
+
+                    else:
+
+                        (
+                            add_holes_valid,
+                            add_holes_message
+                        ) = validate_admin_hole_data(
+                            add_hole_data,
+                            add_par_total
+                        )
+
+                        if not add_holes_valid:
+
+                            st.error(
+                                add_holes_message
+                            )
+
+                        else:
+
+                            add_course_record = {
+
+                                "club_name":
+                                    add_club_name.strip(),
+
+                                "course_name":
+                                    clean_optional_text(
+                                        add_course_name
+                                    ),
+
+                                "city":
+                                    clean_optional_text(
+                                        add_city
+                                    ),
+
+                                "country":
+                                    (
+                                        add_country.strip()
+                                        or "United Kingdom"
+                                    ),
+
+                                "tee_name":
+                                    add_tee_name.strip(),
+
+                                "holes":
+                                    18,
+
+                                "course_rating":
+                                    float(
+                                        add_course_rating
+                                    ),
+
+                                "slope_rating":
+                                    int(
+                                        add_slope_rating
+                                    ),
+
+                                "par_total":
+                                    int(
+                                        add_par_total
+                                    ),
+
+                                "hole_data":
+                                    add_hole_data,
+
+                                "source":
+                                    clean_optional_text(
+                                        add_source
+                                    ),
+
+                                "notes":
+                                    clean_optional_text(
+                                        add_notes
+                                    ),
+
+                                "active":
+                                    True
+                            }
+
+                            try:
+
+                                save_manual_course(
+                                    add_course_record
+                                )
+
+                                st.success(
+                                    "Course / tee added successfully."
+                                )
+
+                            except DuplicateManualCourseError as error:
+
+                                st.error(
+                                    str(error)
+                                )
+
+                            except requests.exceptions.RequestException as error:
+
+                                st.error(
+                                    "The manual course could not be saved."
+                                )
+
+                                st.caption(
+                                    str(error)
+                                )
+
+        # -------------------------------------------------
+        # EDIT COURSE
+        # -------------------------------------------------
+
+        with edit_course_tab:
+
+            try:
+
+                active_manual_courses = (
+                    load_manual_courses(
+                        False
+                    )
+                )
+
+            except requests.exceptions.RequestException as error:
+
+                active_manual_courses = []
+
+                st.error(
+                    "Manual courses could not be loaded."
+                )
+
+                st.caption(
+                    str(error)
+                )
+
+            if not active_manual_courses:
+
+                st.info(
+                    "There are no active manual courses."
+                )
+
+            else:
+
+                edit_options = {}
+
+                for row in active_manual_courses:
+
+                    label = (
+                        manual_course_admin_label(
+                            row
+                        )
+                    )
+
+                    option_key = (
+                        f"{label} "
+                        f"[{row.get('id')}]"
+                    )
+
+                    edit_options[
+                        option_key
+                    ] = row
+
+                selected_edit_label = (
+                    st.selectbox(
+                        "Select course / tee",
+                        list(
+                            edit_options.keys()
+                        ),
+                        format_func=
+                            lambda label:
+                                label.rsplit(
+                                    " [",
+                                    1
+                                )[0],
+                        key=
+                            "admin_edit_manual_course"
+                    )
+                )
+
+                selected_manual_course = (
+                    edit_options[
+                        selected_edit_label
+                    ]
+                )
+
+                selected_manual_id = (
+                    selected_manual_course.get(
+                        "id"
+                    )
+                )
+
+                original_holes = (
+                    selected_manual_course.get(
+                        "hole_data"
+                    )
+                    or []
+                )
+
+                hole_by_number = {}
+
+                for hole in original_holes:
+
+                    try:
+
+                        number = int(
+                            hole.get(
+                                "hole"
+                            )
+                        )
+
+                        hole_by_number[
+                            number
+                        ] = hole
+
+                    except (
+                        TypeError,
+                        ValueError
+                    ):
+
+                        pass
+
+                with st.form(
+                    f"edit_manual_course_form_{selected_manual_id}"
+                ):
+
+                    edit_club_name = (
+                        st.text_input(
+                            "Club name",
+                            value=
+                                str(
+                                    selected_manual_course.get(
+                                        "club_name"
+                                    )
+                                    or ""
+                                ),
+                            key=
+                                f"edit_club_{selected_manual_id}"
+                        )
+                    )
+
+                    edit_course_name = (
+                        st.text_input(
+                            "Course / layout",
+                            value=
+                                str(
+                                    selected_manual_course.get(
+                                        "course_name"
+                                    )
+                                    or ""
+                                ),
+                            key=
+                                f"edit_layout_{selected_manual_id}"
+                        )
+                    )
+
+                    edit_location_col1, edit_location_col2 = (
+                        st.columns(2)
+                    )
+
+                    with edit_location_col1:
+
+                        edit_city = (
+                            st.text_input(
+                                "City",
+                                value=
+                                    str(
+                                        selected_manual_course.get(
+                                            "city"
+                                        )
+                                        or ""
+                                    ),
+                                key=
+                                    f"edit_city_{selected_manual_id}"
+                            )
+                        )
+
+                    with edit_location_col2:
+
+                        edit_country = (
+                            st.text_input(
+                                "Country",
+                                value=
+                                    str(
+                                        selected_manual_course.get(
+                                            "country"
+                                        )
+                                        or ""
+                                    ),
+                                key=
+                                    f"edit_country_{selected_manual_id}"
+                            )
+                        )
+
+                    edit_tee_name = (
+                        st.text_input(
+                            "Tee colour / name",
+                            value=
+                                str(
+                                    selected_manual_course.get(
+                                        "tee_name"
+                                    )
+                                    or ""
+                                ),
+                            key=
+                                f"edit_tee_{selected_manual_id}"
+                        )
+                    )
+
+                    (
+                        edit_rating_col1,
+                        edit_rating_col2,
+                        edit_rating_col3
+                    ) = st.columns(3)
+
+                    with edit_rating_col1:
+
+                        edit_course_rating = (
+                            st.number_input(
+                                "Course Rating",
+                                min_value=40.0,
+                                max_value=100.0,
+                                value=
+                                    float(
+                                        selected_manual_course.get(
+                                            "course_rating"
+                                        )
+                                        or 70.0
+                                    ),
+                                step=0.1,
+                                format="%.1f",
+                                key=
+                                    f"edit_cr_{selected_manual_id}"
+                            )
+                        )
+
+                    with edit_rating_col2:
+
+                        edit_slope_rating = (
+                            st.number_input(
+                                "Slope",
+                                min_value=55,
+                                max_value=155,
+                                value=
+                                    int(
+                                        selected_manual_course.get(
+                                            "slope_rating"
+                                        )
+                                        or 113
+                                    ),
+                                step=1,
+                                key=
+                                    f"edit_slope_{selected_manual_id}"
+                            )
+                        )
+
+                    with edit_rating_col3:
+
+                        edit_par_total = (
+                            st.number_input(
+                                "Par",
+                                min_value=50,
+                                max_value=90,
+                                value=
+                                    int(
+                                        selected_manual_course.get(
+                                            "par_total"
+                                        )
+                                        or 72
+                                    ),
+                                step=1,
+                                key=
+                                    f"edit_total_par_{selected_manual_id}"
+                            )
+                        )
+
+                    edit_source = (
+                        st.text_input(
+                            "Source",
+                            value=
+                                str(
+                                    selected_manual_course.get(
+                                        "source"
+                                    )
+                                    or ""
+                                ),
+                            key=
+                                f"edit_source_{selected_manual_id}"
+                        )
+                    )
+
+                    edit_notes = (
+                        st.text_input(
+                            "Notes",
+                            value=
+                                str(
+                                    selected_manual_course.get(
+                                        "notes"
+                                    )
+                                    or ""
+                                ),
+                            key=
+                                f"edit_notes_{selected_manual_id}"
+                        )
+                    )
+
+                    st.markdown(
+                        "#### Hole information"
+                    )
+
+                    edit_hole_data = []
+
+                    for edit_hole_number in range(
+                        1,
+                        19
+                    ):
+
+                        existing_hole = (
+                            hole_by_number.get(
+                                edit_hole_number,
+                                {}
+                            )
+                        )
+
+                        existing_par = (
+                            existing_hole.get(
+                                "par"
+                            )
+                        )
+
+                        existing_si = (
+                            existing_hole.get(
+                                "stroke_index"
+                            )
+                        )
+
+                        existing_metres = (
+                            existing_hole.get(
+                                "metres"
+                            )
+                        )
+
+                        try:
+                            existing_par = int(
+                                existing_par
+                            )
+                        except (
+                            TypeError,
+                            ValueError
+                        ):
+                            existing_par = 4
+
+                        try:
+                            existing_si = int(
+                                existing_si
+                            )
+                        except (
+                            TypeError,
+                            ValueError
+                        ):
+                            existing_si = edit_hole_number
+
+                        try:
+                            existing_metres = int(
+                                existing_metres
+                            )
+                        except (
+                            TypeError,
+                            ValueError
+                        ):
+                            existing_metres = 0
+
+                        (
+                            edit_hole_col1,
+                            edit_hole_col2,
+                            edit_hole_col3
+                        ) = st.columns(
+                            [
+                                1,
+                                1,
+                                1
+                            ]
+                        )
+
+                        with edit_hole_col1:
+
+                            edit_hole_par = (
+                                st.number_input(
+                                    f"H{edit_hole_number} Par",
+                                    min_value=3,
+                                    max_value=6,
+                                    value=
+                                        existing_par,
+                                    step=1,
+                                    key=(
+                                        f"edit_par_"
+                                        f"{selected_manual_id}_"
+                                        f"{edit_hole_number}"
+                                    )
+                                )
+                            )
+
+                        with edit_hole_col2:
+
+                            edit_hole_si = (
+                                st.number_input(
+                                    f"H{edit_hole_number} SI",
+                                    min_value=1,
+                                    max_value=18,
+                                    value=
+                                        existing_si,
+                                    step=1,
+                                    key=(
+                                        f"edit_si_"
+                                        f"{selected_manual_id}_"
+                                        f"{edit_hole_number}"
+                                    )
+                                )
+                            )
+
+                        with edit_hole_col3:
+
+                            edit_hole_metres = (
+                                st.number_input(
+                                    f"H{edit_hole_number} metres",
+                                    min_value=0,
+                                    max_value=700,
+                                    value=
+                                        existing_metres,
+                                    step=1,
+                                    key=(
+                                        f"edit_metres_"
+                                        f"{selected_manual_id}_"
+                                        f"{edit_hole_number}"
+                                    )
+                                )
+                            )
+
+                        edit_hole_data.append(
+                            {
+                                "hole":
+                                    edit_hole_number,
+
+                                "par":
+                                    int(
+                                        edit_hole_par
+                                    ),
+
+                                "stroke_index":
+                                    int(
+                                        edit_hole_si
+                                    ),
+
+                                "metres":
+                                    (
+                                        int(
+                                            edit_hole_metres
+                                        )
+                                        if edit_hole_metres > 0
+                                        else None
+                                    )
+                            }
+                        )
+
+                    save_manual_changes = (
+                        st.form_submit_button(
+                            "Save changes",
+                            type="primary",
+                            use_container_width=True
+                        )
+                    )
+
+                    if save_manual_changes:
+
+                        if not (
+                            edit_club_name.strip()
+                        ):
+
+                            st.error(
+                                "Enter the golf club name."
+                            )
+
+                        elif not (
+                            edit_tee_name.strip()
+                        ):
+
+                            st.error(
+                                "Enter the tee colour or name."
+                            )
+
+                        else:
+
+                            (
+                                edit_holes_valid,
+                                edit_holes_message
+                            ) = validate_admin_hole_data(
+                                edit_hole_data,
+                                edit_par_total
+                            )
+
+                            if not edit_holes_valid:
+
+                                st.error(
+                                    edit_holes_message
+                                )
+
+                            else:
+
+                                update_record = {
+
+                                    "club_name":
+                                        edit_club_name.strip(),
+
+                                    "course_name":
+                                        clean_optional_text(
+                                            edit_course_name
+                                        ),
+
+                                    "city":
+                                        clean_optional_text(
+                                            edit_city
+                                        ),
+
+                                    "country":
+                                        (
+                                            edit_country.strip()
+                                            or "United Kingdom"
+                                        ),
+
+                                    "tee_name":
+                                        edit_tee_name.strip(),
+
+                                    "holes":
+                                        18,
+
+                                    "course_rating":
+                                        float(
+                                            edit_course_rating
+                                        ),
+
+                                    "slope_rating":
+                                        int(
+                                            edit_slope_rating
+                                        ),
+
+                                    "par_total":
+                                        int(
+                                            edit_par_total
+                                        ),
+
+                                    "hole_data":
+                                        edit_hole_data,
+
+                                    "source":
+                                        clean_optional_text(
+                                            edit_source
+                                        ),
+
+                                    "notes":
+                                        clean_optional_text(
+                                            edit_notes
+                                        ),
+
+                                    "active":
+                                        True
+                                }
+
+                                try:
+
+                                    update_manual_course(
+                                        selected_manual_id,
+                                        update_record
+                                    )
+
+                                    st.success(
+                                        "Course / tee updated."
+                                    )
+
+                                    st.rerun()
+
+                                except DuplicateManualCourseError as error:
+
+                                    st.error(
+                                        str(error)
+                                    )
+
+                                except requests.exceptions.RequestException as error:
+
+                                    st.error(
+                                        "The course could not be updated."
+                                    )
+
+                                    st.caption(
+                                        str(error)
+                                    )
+
+                st.divider()
+
+                if (
+                    st.session_state
+                    .pending_delete_manual_course_id
+                    != selected_manual_id
+                ):
+
+                    if st.button(
+                        "Remove course / tee from app",
+                        use_container_width=True,
+                        key=
+                            "start_manual_course_deactivate"
+                    ):
+
+                        st.session_state.pending_delete_manual_course_id = (
+                            selected_manual_id
+                        )
+
+                        st.rerun()
+
+                else:
+
+                    st.warning(
+                        "This will make the course / tee inactive. "
+                        "Existing rounds are not deleted."
+                    )
+
+                    deactivate_col1, deactivate_col2 = (
+                        st.columns(2)
+                    )
+
+                    with deactivate_col1:
+
+                        if st.button(
+                            "Yes, remove it",
+                            use_container_width=True,
+                            type="primary",
+                            key=
+                                "confirm_manual_course_deactivate"
+                        ):
+
+                            try:
+
+                                deactivate_manual_course(
+                                    selected_manual_id
+                                )
+
+                                st.session_state.pending_delete_manual_course_id = (
+                                    None
+                                )
+
+                                st.rerun()
+
+                            except requests.exceptions.RequestException as error:
+
+                                st.error(
+                                    "The course could not be removed."
+                                )
+
+                                st.caption(
+                                    str(error)
+                                )
+
+                    with deactivate_col2:
+
+                        if st.button(
+                            "Cancel",
+                            use_container_width=True,
+                            key=
+                                "cancel_manual_course_deactivate"
+                        ):
+
+                            st.session_state.pending_delete_manual_course_id = (
+                                None
+                            )
+
+                            st.rerun()
+
+        # -------------------------------------------------
+        # INACTIVE COURSES
+        # -------------------------------------------------
+
+        with inactive_course_tab:
+
+            try:
+
+                all_manual_courses_admin = (
+                    load_manual_courses(
+                        True
+                    )
+                )
+
+                inactive_courses = [
+                    row
+                    for row in all_manual_courses_admin
+                    if not row.get(
+                        "active",
+                        True
+                    )
+                ]
+
+            except requests.exceptions.RequestException as error:
+
+                inactive_courses = []
+
+                st.error(
+                    "Inactive courses could not be loaded."
+                )
+
+                st.caption(
+                    str(error)
+                )
+
+            if not inactive_courses:
+
+                st.info(
+                    "There are no inactive manual courses."
+                )
+
+            else:
+
+                inactive_options = {}
+
+                for row in inactive_courses:
+
+                    label = (
+                        manual_course_admin_label(
+                            row
+                        )
+                    )
+
+                    option_key = (
+                        f"{label} "
+                        f"[{row.get('id')}]"
+                    )
+
+                    inactive_options[
+                        option_key
+                    ] = row
+
+                selected_inactive_label = (
+                    st.selectbox(
+                        "Inactive course / tee",
+                        list(
+                            inactive_options.keys()
+                        ),
+                        format_func=
+                            lambda label:
+                                label.rsplit(
+                                    " [",
+                                    1
+                                )[0],
+                        key=
+                            "admin_inactive_manual_course"
+                    )
+                )
+
+                selected_inactive_course = (
+                    inactive_options[
+                        selected_inactive_label
+                    ]
+                )
+
+                st.write(
+                    f"**"
+                    f"{selected_inactive_course.get('club_name')}"
+                    f"**"
+                )
+
+                if selected_inactive_course.get(
+                    "course_name"
+                ):
+
+                    st.write(
+                        selected_inactive_course.get(
+                            "course_name"
+                        )
+                    )
+
+                st.caption(
+                    f"{selected_inactive_course.get('tee_name')} tees"
+                )
+
+                if st.button(
+                    "Restore course / tee",
+                    use_container_width=True,
+                    type="primary",
+                    key=
+                        "restore_manual_course"
+                ):
+
+                    try:
+
+                        reactivate_manual_course(
+                            selected_inactive_course.get(
+                                "id"
+                            )
+                        )
+
+                        st.success(
+                            "Course / tee restored."
+                        )
+
+                        st.rerun()
+
+                    except requests.exceptions.RequestException as error:
+
+                        st.error(
+                            "The course could not be restored."
+                        )
+
+                        st.caption(
+                            str(error)
+                        )
+
+        # =================================================
+        # ROUND MANAGER
+        # =================================================
+
+        st.divider()
+
+        st.markdown(
+            "### Round Manager"
+        )
 
         if not all_rounds:
 
@@ -5426,7 +7413,7 @@ with st.expander(
             )
 
             st.markdown(
-                "### Delete rounds"
+                "#### Delete rounds"
             )
 
             delete_mode = st.radio(
