@@ -702,8 +702,6 @@ def delete_rounds_from_database(
         return
 
 
-    # Delete in blocks so a large scoring record
-    # does not create an excessively long request.
     block_size = 50
 
 
@@ -4572,6 +4570,20 @@ with st.expander(
             )
 
 
+            players_in_database = sorted(
+                {
+                    r.get(
+                        "Player"
+                    )
+                    for r
+                    in admin_rounds
+                    if r.get(
+                        "Player"
+                    )
+                }
+            )
+
+
             st.markdown(
                 "### Delete rounds"
             )
@@ -4581,8 +4593,8 @@ with st.expander(
                 "Deletion mode",
                 [
                     "Single round",
-                    "Multiple rounds",
-                    "All rounds"
+                    "Multiple rounds for one player",
+                    "All rounds for one player"
                 ],
                 key=
                     "admin_delete_mode"
@@ -4787,68 +4799,33 @@ with st.expander(
 
 
             # =================================================
-            # MULTIPLE ROUNDS
+            # MULTIPLE ROUNDS FOR ONE PLAYER
             # =================================================
 
             elif (
                 delete_mode
-                == "Multiple rounds"
+                == "Multiple rounds for one player"
             ):
 
-                st.caption(
-                    "Filter by player if required, then select "
-                    "individual rounds or all rounds currently shown."
+                selected_bulk_player = st.selectbox(
+                    "Select player",
+                    players_in_database,
+                    key=
+                        "admin_bulk_player"
                 )
 
 
-                players_in_database = sorted(
-                    {
+                filtered_rounds = [
+                    r
+                    for r
+                    in admin_rounds
+                    if (
                         r.get(
                             "Player"
                         )
-                        for r
-                        in admin_rounds
-                        if r.get(
-                            "Player"
-                        )
-                    }
-                )
-
-
-                player_filter = st.selectbox(
-                    "Player filter",
-                    [
-                        "All players"
-                    ]
-                    + players_in_database,
-                    key=
-                        "admin_bulk_player_filter"
-                )
-
-
-                if (
-                    player_filter
-                    == "All players"
-                ):
-
-                    filtered_rounds = (
-                        admin_rounds
+                        == selected_bulk_player
                     )
-
-
-                else:
-
-                    filtered_rounds = [
-                        r
-                        for r
-                        in admin_rounds
-                        if (
-                            r.get(
-                                "Player"
-                            )
-                            == player_filter
-                        )
-                    ]
+                ]
 
 
                 bulk_options = {}
@@ -4860,7 +4837,6 @@ with st.expander(
 
                     visible_label = (
                         f"{r.get('Date')} • "
-                        f"{r.get('Player')} • "
                         f"{r.get('Golf Course')} • "
                         f"{r.get('Tees')} • "
                         f"{r.get('Holes')} holes • "
@@ -4884,14 +4860,17 @@ with st.expander(
                     f"**{len(filtered_rounds)} "
                     f"round"
                     f"{'' if len(filtered_rounds) == 1 else 's'} "
-                    f"shown**"
+                    f"for {selected_bulk_player}**"
                 )
 
 
                 select_all_shown = st.checkbox(
-                    "Select all shown rounds",
+                    (
+                        f"Select all rounds for "
+                        f"{selected_bulk_player}"
+                    ),
                     key=
-                        "admin_select_all_shown"
+                        "admin_select_all_player_rounds"
                 )
 
 
@@ -4904,7 +4883,9 @@ with st.expander(
                     st.info(
                         f"All "
                         f"{len(selected_bulk_labels)} "
-                        f"shown rounds are selected."
+                        f"rounds for "
+                        f"{selected_bulk_player} "
+                        f"are selected."
                     )
 
 
@@ -5023,7 +5004,8 @@ with st.expander(
                             f"This will permanently delete "
                             f"{selected_count} "
                             f"round"
-                            f"{'' if selected_count == 1 else 's'}."
+                            f"{'' if selected_count == 1 else 's'} "
+                            f"for {selected_bulk_player}."
                         )
 
 
@@ -5104,17 +5086,38 @@ with st.expander(
 
 
             # =================================================
-            # ALL ROUNDS
+            # ALL ROUNDS FOR ONE PLAYER
             # =================================================
 
             else:
 
-                all_round_ids = [
+                selected_player_for_delete = st.selectbox(
+                    "Select player",
+                    players_in_database,
+                    key=
+                        "admin_delete_all_player"
+                )
+
+
+                player_rounds_to_delete = [
+                    r
+                    for r
+                    in admin_rounds
+                    if (
+                        r.get(
+                            "Player"
+                        )
+                        == selected_player_for_delete
+                    )
+                ]
+
+
+                player_round_ids = [
                     r.get(
                         "ID"
                     )
                     for r
-                    in admin_rounds
+                    in player_rounds_to_delete
                     if (
                         r.get(
                             "ID"
@@ -5124,49 +5127,53 @@ with st.expander(
                 ]
 
 
-                total_rounds = len(
-                    all_round_ids
-                )
-
-
-                st.error(
-                    "Danger zone"
-                )
-
-
-                st.write(
-                    f"There are currently "
-                    f"**{total_rounds} rounds** "
-                    f"in the database."
+                total_player_rounds = len(
+                    player_round_ids
                 )
 
 
                 st.warning(
-                    "Deleting all rounds will permanently remove "
-                    "the complete scoring history for every player. "
-                    "This cannot be undone."
+                    f"This will permanently delete all "
+                    f"**{total_player_rounds} rounds** for "
+                    f"**{selected_player_for_delete}**."
                 )
 
 
-                delete_all_confirmation = st.text_input(
-                    "Type DELETE ALL to continue",
+                st.caption(
+                    "Rounds belonging to other players "
+                    "will not be affected."
+                )
+
+
+                required_confirmation = (
+                    f"DELETE "
+                    f"{selected_player_for_delete.upper()}"
+                )
+
+
+                delete_player_confirmation = st.text_input(
+                    (
+                        f"Type "
+                        f"{required_confirmation} "
+                        f"to continue"
+                    ),
                     placeholder=
-                        "DELETE ALL",
+                        required_confirmation,
                     key=
-                        "delete_all_confirmation"
+                        "delete_player_confirmation"
                 )
 
 
-                delete_all_ready = (
-                    delete_all_confirmation
+                delete_player_ready = (
+                    delete_player_confirmation
                     .strip()
                     .upper()
-                    == "DELETE ALL"
+                    == required_confirmation
                 )
 
 
-                pending_all = (
-                    total_rounds > 0
+                pending_player_delete = (
+                    total_player_rounds > 0
 
                     and set(
                         str(value)
@@ -5177,20 +5184,25 @@ with st.expander(
                     == set(
                         str(value)
                         for value
-                        in all_round_ids
+                        in player_round_ids
                     )
                 )
 
 
-                if not pending_all:
+                if not pending_player_delete:
 
                     if st.button(
-                        "Delete ALL rounds",
+                        (
+                            f"Delete all rounds for "
+                            f"{selected_player_for_delete}"
+                        ),
                         use_container_width=True,
-                        disabled=
-                            not delete_all_ready,
+                        disabled=(
+                            not delete_player_ready
+                            or total_player_rounds == 0
+                        ),
                         key=
-                            "start_delete_all"
+                            "start_delete_player_all"
                     ):
 
                         st.session_state.pending_delete_round_id = (
@@ -5198,7 +5210,7 @@ with st.expander(
                         )
 
                         st.session_state.pending_bulk_delete_ids = (
-                            all_round_ids
+                            player_round_ids
                         )
 
                         st.rerun()
@@ -5207,9 +5219,9 @@ with st.expander(
                 else:
 
                     st.error(
-                        f"Final confirmation: this will "
-                        f"permanently delete all "
-                        f"{total_rounds} rounds."
+                        f"Final confirmation: permanently delete "
+                        f"all {total_player_rounds} rounds for "
+                        f"{selected_player_for_delete}?"
                     )
 
 
@@ -5221,17 +5233,17 @@ with st.expander(
                     with c1:
 
                         if st.button(
-                            "Yes, delete everything",
+                            "Yes, delete them",
                             use_container_width=True,
                             type="primary",
                             key=
-                                "confirm_delete_all"
+                                "confirm_delete_player_all"
                         ):
 
                             try:
 
                                 delete_rounds_from_database(
-                                    all_round_ids
+                                    player_round_ids
                                 )
 
                                 st.session_state.pending_bulk_delete_ids = (
@@ -5261,7 +5273,8 @@ with st.expander(
                             ) as error:
 
                                 st.error(
-                                    "The rounds could not be deleted."
+                                    "The player's rounds "
+                                    "could not be deleted."
                                 )
 
                                 st.caption(
@@ -5275,7 +5288,7 @@ with st.expander(
                             "Cancel",
                             use_container_width=True,
                             key=
-                                "cancel_delete_all"
+                                "cancel_delete_player_all"
                         ):
 
                             st.session_state.pending_bulk_delete_ids = (
