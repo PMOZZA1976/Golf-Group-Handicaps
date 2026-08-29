@@ -1014,11 +1014,6 @@ def find_identical_rounds_in_database(
         )
 
 
-        # ---------------------------------------------
-        # Prefer the API ID when both records have one.
-        # Otherwise fall back to course/layout names.
-        # ---------------------------------------------
-
         if (
             new_course_api_id
             and candidate_api_id
@@ -1242,6 +1237,11 @@ for row in database_rounds:
         "Slope Rating":
             row.get(
                 "slope_rating"
+            ),
+
+        "Rating Status":
+            row.get(
+                "rating_status"
             ),
 
         "Par":
@@ -2812,6 +2812,99 @@ def find_known_nine_rating(
     return None
 
 
+def determine_nine_rating_status(
+    known_rating,
+    course_rating,
+    slope_rating
+):
+
+    """
+    Returns the provenance of the 9-hole rating actually used.
+
+    If there is no stored rating, the values are Manual.
+
+    If stored values are used unchanged, retain their stored
+    Published or Estimated status.
+
+    If either stored value is changed by the user, classify the
+    rating as Manual.
+    """
+
+    if known_rating is None:
+
+        return "Manual"
+
+
+    if (
+        course_rating is None
+        or slope_rating is None
+    ):
+
+        return known_rating.get(
+            "status",
+            "Manual"
+        )
+
+
+    try:
+
+        stored_cr = float(
+            known_rating[
+                "course_rating"
+            ]
+        )
+
+        stored_slope = int(
+            known_rating[
+                "slope_rating"
+            ]
+        )
+
+        entered_cr = float(
+            course_rating
+        )
+
+        entered_slope = int(
+            slope_rating
+        )
+
+    except (
+        TypeError,
+        ValueError,
+        KeyError
+    ):
+
+        return "Manual"
+
+
+    same_course_rating = (
+        abs(
+            entered_cr
+            - stored_cr
+        ) < 0.001
+    )
+
+
+    same_slope = (
+        entered_slope
+        == stored_slope
+    )
+
+
+    if (
+        same_course_rating
+        and same_slope
+    ):
+
+        return known_rating.get(
+            "status",
+            "Manual"
+        )
+
+
+    return "Manual"
+
+
 def get_hole_number(
     hole,
     fallback
@@ -2945,6 +3038,27 @@ It adjusts a score for the difficulty of the course and tees. **Lower is better.
 For a 9-hole round, Handicap Builder combines the differential from the nine holes played with an expected-nine value.
 
 The expected-nine calculation used here is an **unofficial approximation**, so it may differ slightly from an authorised WHS service.
+"""
+        )
+
+
+def show_rating_status_info():
+
+    with st.expander(
+        "What does Rating Status mean?"
+    ):
+
+        st.markdown(
+            """
+For 9-hole rounds:
+
+**Published** means Handicap Builder is using a stored published 9-hole Course Rating and Slope Rating.
+
+**Estimated** means the stored 9-hole Course Rating and Slope Rating are estimates.
+
+**Manual** means the Course Rating or Slope Rating was entered or changed manually.
+
+18-hole rounds use the selected tee information from the course database, so Rating Status is not shown for those rounds.
 """
         )
 
@@ -3107,10 +3221,6 @@ def show_save_controls(
     )
 
 
-    # =====================================================
-    # DUPLICATE CONFIRMATION
-    # =====================================================
-
     if duplicate_confirmation_pending:
 
         st.warning(
@@ -3186,10 +3296,6 @@ def show_save_controls(
 
         return
 
-
-    # =====================================================
-    # NORMAL SAVE
-    # =====================================================
 
     if st.button(
         "Save round",
@@ -3815,6 +3921,11 @@ if course_data:
         )
 
 
+        known_rating = (
+            None
+        )
+
+
         # =====================================================
         # 9 HOLES
         # =====================================================
@@ -3855,12 +3966,6 @@ if course_data:
                     ]
                 )
 
-                rating_status = (
-                    known_rating[
-                        "status"
-                    ]
-                )
-
 
             else:
 
@@ -3870,10 +3975,6 @@ if course_data:
 
                 default_slope = (
                     None
-                )
-
-                rating_status = (
-                    "Manual"
                 )
 
 
@@ -3890,8 +3991,19 @@ if course_data:
             )
 
 
+            initial_rating_status = (
+                known_rating.get(
+                    "status"
+                )
+
+                if known_rating
+
+                else "Manual"
+            )
+
+
             if (
-                rating_status
+                initial_rating_status
                 == "Estimated"
             ):
 
@@ -3902,7 +4014,7 @@ if course_data:
 
 
             elif (
-                rating_status
+                initial_rating_status
                 == "Published"
             ):
 
@@ -4011,6 +4123,47 @@ if course_data:
                     )
 
 
+            rating_status = (
+                determine_nine_rating_status(
+                    known_rating,
+                    course_rating,
+                    slope_rating
+                )
+            )
+
+
+            if (
+                course_rating is not None
+                and slope_rating is not None
+            ):
+
+                if (
+                    rating_status
+                    == "Published"
+                ):
+
+                    st.caption(
+                        "Rating Status: **Published**"
+                    )
+
+
+                elif (
+                    rating_status
+                    == "Estimated"
+                ):
+
+                    st.caption(
+                        "Rating Status: **Estimated**"
+                    )
+
+
+                else:
+
+                    st.caption(
+                        "Rating Status: **Manual**"
+                    )
+
+
         # =====================================================
         # 18 HOLES
         # =====================================================
@@ -4027,6 +4180,11 @@ if course_data:
 
             course_par = (
                 full_par
+            )
+
+
+            rating_status = (
+                None
             )
 
 
@@ -4338,6 +4496,18 @@ if course_data:
                                 "slope_rating":
                                     int(
                                         slope_rating
+                                    ),
+
+                                "rating_status":
+                                    (
+                                        rating_status
+
+                                        if (
+                                            holes_played
+                                            == 9
+                                        )
+
+                                        else None
                                     ),
 
                                 "par":
@@ -4658,10 +4828,6 @@ if course_data:
                         )
 
 
-                        # =====================================
-                        # PAR - API FIRST
-                        # =====================================
-
                         with top1:
 
                             if (
@@ -4723,10 +4889,6 @@ if course_data:
                                 )
 
 
-                        # =====================================
-                        # STROKE INDEX - ALWAYS MANUAL
-                        # =====================================
-
                         with top2:
 
                             si_options = (
@@ -4769,10 +4931,6 @@ if course_data:
                                 )
                             )
 
-
-                        # =====================================
-                        # SCORE
-                        # =====================================
 
                         st.markdown(
                             "**Shots taken**"
@@ -4913,10 +5071,6 @@ if course_data:
                                 )
 
 
-                # =================================================
-                # ENTRY PROGRESS
-                # =================================================
-
                 st.caption(
                     f"{complete_holes} of "
                     f"{required_holes} holes "
@@ -5027,10 +5181,6 @@ if course_data:
                         "the API for a hole, enter that Par manually."
                     )
 
-
-                # =================================================
-                # ROUND CALCULATION
-                # =================================================
 
                 if (
                     entry_complete
@@ -5214,6 +5364,18 @@ if course_data:
                                 "slope_rating":
                                     int(
                                         slope_rating
+                                    ),
+
+                                "rating_status":
+                                    (
+                                        rating_status
+
+                                        if (
+                                            holes_played
+                                            == 9
+                                        )
+
+                                        else None
                                     ),
 
                                 "par":
@@ -5512,6 +5674,31 @@ else:
             effective_ratings
         ):
 
+            holes_value = int(
+                round_item.get(
+                    "Holes"
+                )
+                or 0
+            )
+
+
+            if holes_value == 9:
+
+                display_rating_status = (
+                    round_item.get(
+                        "Rating Status"
+                    )
+                    or "Not recorded"
+                )
+
+
+            else:
+
+                display_rating_status = (
+                    ""
+                )
+
+
             display_rows.append({
 
                 "Date":
@@ -5533,6 +5720,9 @@ else:
                     round_item.get(
                         "Holes"
                     ),
+
+                "Rating Status":
+                    display_rating_status,
 
                 "Gross Score":
                     round_item.get(
@@ -5611,6 +5801,8 @@ else:
 
 
         show_round_rating_info()
+
+        show_rating_status_info()
 
 
 # =========================================================
