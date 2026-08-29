@@ -539,20 +539,13 @@ div[role="radiogroup"]
 # =========================================================
 
 st.markdown(
-    """
-<div class="golf-hero">
-
-    <div class="golf-hero-title">
-        Handicap Builder
-    </div>
-
-    <div class="golf-hero-subtitle">
-        Track rounds, compare performances and build an
-        unofficial WHS-based Handicap Index.
-    </div>
-
-</div>
-""",
+    '<div class="golf-hero">'
+    '<div class="golf-hero-title">Handicap Builder</div>'
+    '<div class="golf-hero-subtitle">'
+    'Track rounds, compare performances and build an unofficial '
+    'WHS-based Handicap Index.'
+    '</div>'
+    '</div>',
     unsafe_allow_html=True
 )
 
