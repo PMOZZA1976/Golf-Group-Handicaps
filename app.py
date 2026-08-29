@@ -404,6 +404,10 @@ PLAYERS = [
 
 NINE_HOLE_RATINGS = [
 
+    # =====================================================
+    # BROCTON HALL - YELLOW
+    # =====================================================
+
     {
         "aliases": [
             "brocton hall",
@@ -428,6 +432,36 @@ NINE_HOLE_RATINGS = [
         "status":
             "Estimated"
     },
+
+    {
+        "aliases": [
+            "brocton hall",
+            "brocton hall golf club"
+        ],
+
+        "tee":
+            "yellow",
+
+        "nine":
+            "Back 9",
+
+        "course_rating":
+            34.6,
+
+        "slope_rating":
+            125,
+
+        "par":
+            35,
+
+        "status":
+            "Estimated"
+    },
+
+
+    # =====================================================
+    # MANOR GOLF CLUB - YELLOW
+    # =====================================================
 
     {
         "aliases": [
@@ -457,6 +491,37 @@ NINE_HOLE_RATINGS = [
 
     {
         "aliases": [
+            "the manor golf club",
+            "manor golf club",
+            "manor golf club ltd"
+        ],
+
+        "tee":
+            "yellow",
+
+        "nine":
+            "Back 9",
+
+        "course_rating":
+            34.2,
+
+        "slope_rating":
+            118,
+
+        "par":
+            36,
+
+        "status":
+            "Published"
+    },
+
+
+    # =====================================================
+    # BARLASTON GOLF CLUB - YELLOW
+    # =====================================================
+
+    {
+        "aliases": [
             "barlaston golf club",
             "barlaston"
         ],
@@ -479,6 +544,36 @@ NINE_HOLE_RATINGS = [
         "status":
             "Published"
     },
+
+    {
+        "aliases": [
+            "barlaston golf club",
+            "barlaston"
+        ],
+
+        "tee":
+            "yellow",
+
+        "nine":
+            "Back 9",
+
+        "course_rating":
+            33.4,
+
+        "slope_rating":
+            110,
+
+        "par":
+            34,
+
+        "status":
+            "Published"
+    },
+
+
+    # =====================================================
+    # STONE GOLF CLUB - YELLOW
+    # =====================================================
 
     {
         "aliases": [
@@ -507,6 +602,36 @@ NINE_HOLE_RATINGS = [
 
     {
         "aliases": [
+            "stone golf club",
+            "stone golf"
+        ],
+
+        "tee":
+            "yellow",
+
+        "nine":
+            "Back 9",
+
+        "course_rating":
+            35.2,
+
+        "slope_rating":
+            123,
+
+        "par":
+            36,
+
+        "status":
+            "Published"
+    },
+
+
+    # =====================================================
+    # CASTLE GOLF & LEISURE - BLUE
+    # =====================================================
+
+    {
+        "aliases": [
             "the castle golf & leisure",
             "castle golf & leisure",
             "the castle golf and leisure",
@@ -527,6 +652,33 @@ NINE_HOLE_RATINGS = [
 
         "par":
             37,
+
+        "status":
+            "Estimated"
+    },
+
+    {
+        "aliases": [
+            "the castle golf & leisure",
+            "castle golf & leisure",
+            "the castle golf and leisure",
+            "castle golf club"
+        ],
+
+        "tee":
+            "blue",
+
+        "nine":
+            "Back 9",
+
+        "course_rating":
+            35.0,
+
+        "slope_rating":
+            122,
+
+        "par":
+            36,
 
         "status":
             "Estimated"
