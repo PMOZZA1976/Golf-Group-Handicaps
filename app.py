@@ -572,7 +572,13 @@ DEFAULT_SESSION_VALUES = {
     "selected_player_entry":
         None,
 
-    "record_player_selector":
+    # Actual state of the lower Player Handicaps selectbox
+    "record_player_widget":
+        None,
+
+    # One-time instruction to synchronise the lower
+    # Player Handicaps selector with Add Round
+    "pending_record_player_sync":
         None,
 
     "player_menu_open":
@@ -2895,6 +2901,24 @@ def complete_round_save(
         summary
     )
 
+    # Keep the player whose round was just saved selected
+    # in both Add Round and Player Handicaps after rerun.
+    saved_player = (
+        summary.get(
+            "player"
+        )
+    )
+
+    if saved_player:
+
+        st.session_state.selected_player_entry = (
+            saved_player
+        )
+
+        st.session_state.pending_record_player_sync = (
+            saved_player
+        )
+
     load_rounds_from_database.clear()
 
     st.rerun()
@@ -3152,7 +3176,8 @@ if st.session_state.player_menu_open:
                 player_name
             )
 
-            st.session_state.record_player_selector = (
+            # Synchronise Player Handicaps on the next render.
+            st.session_state.pending_record_player_sync = (
                 player_name
             )
 
@@ -4825,9 +4850,36 @@ else:
 
     else:
 
+        # =====================================================
+        # PLAYER HANDICAP VIEW
+        # =====================================================
+
+        # Apply any pending one-time synchronisation BEFORE
+        # rendering the actual selectbox.
+        pending_record_player = (
+            st.session_state
+            .pending_record_player_sync
+        )
+
+        if (
+            pending_record_player is not None
+            and pending_record_player
+            in players_with_scores
+        ):
+
+            st.session_state.record_player_widget = (
+                pending_record_player
+            )
+
+            st.session_state.pending_record_player_sync = (
+                None
+            )
+
+        # If a previously selected player no longer has any
+        # rounds, clear the lower selector.
         current_record_player = (
             st.session_state
-            .record_player_selector
+            .record_player_widget
         )
 
         if (
@@ -4836,7 +4888,7 @@ else:
             not in players_with_scores
         ):
 
-            st.session_state.record_player_selector = (
+            st.session_state.record_player_widget = (
                 None
             )
 
@@ -4855,7 +4907,7 @@ else:
                     else value
                 ),
             key=
-                "record_player_selector"
+                "record_player_widget"
         )
 
         # =====================================================
