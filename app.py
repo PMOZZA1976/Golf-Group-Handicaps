@@ -386,6 +386,47 @@ PLAYERS = [
 
 NINE_HOLE_RATINGS = [
 
+    # =====================================================
+    # BROCTON HALL - OFFICIAL FRONT 9 RATINGS
+    # Effective 29 August 2026
+    # =====================================================
+
+    {
+        "aliases": [
+            "brocton hall",
+            "brocton hall golf club"
+        ],
+        "tee": "blue",
+        "nine": "Front 9",
+        "course_rating": 29.0,
+        "slope_rating": 98,
+        "status": "Published"
+    },
+
+    {
+        "aliases": [
+            "brocton hall",
+            "brocton hall golf club"
+        ],
+        "tee": "red",
+        "nine": "Front 9",
+        "course_rating": 32.3,
+        "slope_rating": 112,
+        "status": "Published"
+    },
+
+    {
+        "aliases": [
+            "brocton hall",
+            "brocton hall golf club"
+        ],
+        "tee": "white",
+        "nine": "Front 9",
+        "course_rating": 34.0,
+        "slope_rating": 124,
+        "status": "Published"
+    },
+
     {
         "aliases": [
             "brocton hall",
@@ -393,10 +434,15 @@ NINE_HOLE_RATINGS = [
         ],
         "tee": "yellow",
         "nine": "Front 9",
-        "course_rating": 33.8,
-        "slope_rating": 125,
-        "status": "Estimated"
+        "course_rating": 33.3,
+        "slope_rating": 121,
+        "status": "Published"
     },
+
+    # =====================================================
+    # BROCTON HALL - BACK 9
+    # Official separate rating not yet supplied
+    # =====================================================
 
     {
         "aliases": [
@@ -409,6 +455,10 @@ NINE_HOLE_RATINGS = [
         "slope_rating": 125,
         "status": "Estimated"
     },
+
+    # =====================================================
+    # MANOR GOLF CLUB - YELLOW
+    # =====================================================
 
     {
         "aliases": [
@@ -436,6 +486,10 @@ NINE_HOLE_RATINGS = [
         "status": "Published"
     },
 
+    # =====================================================
+    # BARLASTON GOLF CLUB - YELLOW
+    # =====================================================
+
     {
         "aliases": [
             "barlaston golf club",
@@ -460,6 +514,10 @@ NINE_HOLE_RATINGS = [
         "status": "Published"
     },
 
+    # =====================================================
+    # STONE GOLF CLUB - YELLOW
+    # =====================================================
+
     {
         "aliases": [
             "stone golf club",
@@ -483,6 +541,10 @@ NINE_HOLE_RATINGS = [
         "slope_rating": 123,
         "status": "Published"
     },
+
+    # =====================================================
+    # CASTLE GOLF & LEISURE - BLUE
+    # =====================================================
 
     {
         "aliases": [
