@@ -2822,6 +2822,52 @@ If you're unsure whether your total needs adjusting, use **Hole-by-hole scores**
         )
 
 
+def show_how_it_works():
+
+    st.markdown(
+        (
+            '<div class="secondary-section-title">'
+            'How it works'
+            '</div>'
+        ),
+        unsafe_allow_html=True
+    )
+
+    with st.expander(
+        "How Handicap Builder works"
+    ):
+
+        st.markdown(
+            """
+**1. Record your rounds**
+
+Enter either a **9-hole or 18-hole round**. Choose the course and tees, then enter your total gross score or use hole-by-hole entry.
+
+**2. Build your first Handicap Index**
+
+You need scores covering at least **54 holes** before Handicap Builder can calculate an initial Handicap Index. These can be any combination of 9-hole and 18-hole rounds.
+
+**3. Round Ratings make scores comparable**
+
+Each round produces a **Round Rating**, based on your score and the difficulty of the course and tees. It is similar to a WHS Score Differential — **lower is better**.
+
+For an established player, a 9-hole score is converted into an 18-hole-equivalent Round Rating by combining the nine holes played with an expected performance for the remaining nine.
+
+**4. Your Handicap Index updates automatically**
+
+Once you have enough scores, Handicap Builder uses the appropriate number of your best recent Round Ratings to calculate your Handicap Index. As you record more rounds, the calculation updates automatically.
+
+**5. Your Player Summary tracks your form**
+
+Your dashboard shows your current Handicap Index, recent Round Rating average, best recent Round Rating and your average gross score from your **five most recent 18-hole rounds**.
+
+---
+
+**Important:** Handicap Builder provides an **unofficial WHS-based estimate**. Its treatment of expected performance for 9-hole rounds is an approximation and may differ from an authorised WHS handicapping service.
+"""
+        )
+
+
 # =========================================================
 # FINGERPRINT
 # =========================================================
@@ -5054,7 +5100,7 @@ else:
                 )
 
                 st.metric(
-                    "Avg gross — last 5 (18H)",
+                    "Avg 18H gross",
                     (
                         f"{average_gross:.1f}"
                         if average_gross is not None
@@ -5066,7 +5112,8 @@ else:
                 "Recent RR average uses the latest 3 valid "
                 "Round Ratings. The change compares them with "
                 "the previous 3 — a lower Round Rating is better. "
-                "Average gross uses the latest 5 18-hole rounds only."
+                "Average 18-hole gross uses the latest 5 "
+                "18-hole rounds only."
             )
 
             if (
@@ -5240,6 +5287,15 @@ else:
             show_round_rating_info()
 
             show_rating_status_info()
+
+
+# =========================================================
+# HOW IT WORKS
+# =========================================================
+
+st.divider()
+
+show_how_it_works()
 
 
 # =========================================================
