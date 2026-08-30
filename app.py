@@ -3585,6 +3585,26 @@ If you're unsure whether your total needs adjusting, use **Hole-by-hole scores**
         )
 
 
+
+def show_handicap_index_info():
+
+    with st.expander(
+        "How is my Handicap Index calculated?"
+    ):
+
+        st.markdown(
+            """
+Once you have **20 valid Round Ratings**, your Handicap Index is the **average of the best 8 from your most recent 20**.
+
+That means your Handicap Index is designed to measure your **demonstrated playing potential**, rather than simply your current form. A few unusually good or poor rounds will not necessarily cause a large change — what matters is which scores are currently among the ones that count.
+
+Before 20 valid Round Ratings are available, Handicap Builder follows the WHS approach of using a smaller number of the best available ratings, with the applicable adjustment for the number of scores held.
+
+In the Scoring Record below, a **✓** in the **Counts** column shows a Round Rating that is currently included in your Handicap Index.
+"""
+        )
+
+
 def show_how_it_works():
 
     st.markdown(
@@ -3616,9 +3636,11 @@ Each round produces a **Round Rating**, based on your score and the difficulty o
 
 For an established player, a 9-hole score is converted into an 18-hole-equivalent Round Rating by combining the nine holes played with an expected performance for the remaining nine.
 
-**4. Your Handicap Index updates automatically**
+**4. Your Handicap Index measures playing potential**
 
-Once you have enough scores, Handicap Builder uses the appropriate number of your best recent Round Ratings to calculate your Handicap Index. As you record more rounds, the calculation updates automatically.
+Once you have **20 valid Round Ratings**, your Handicap Index is the **average of the best 8 from your most recent 20**. This is designed to reflect your **demonstrated playing potential**, rather than simply your current form.
+
+Before 20 valid Round Ratings are available, Handicap Builder uses the appropriate smaller number of your best available ratings, in line with the WHS approach. As new rounds are added, older scores eventually drop out of the most recent 20 and the calculation updates automatically.
 
 **5. Your Player Summary tracks your form**
 
@@ -5773,22 +5795,45 @@ else:
 
             explanation = ""
 
+            counting_valid_indices = []
+
+            counting_record_indices = set()
+
             if (
                 record_completed_holes
                 >= 54
             ):
 
+                valid_record_indices = [
+                    i
+                    for i, value in enumerate(
+                        effective_ratings
+                    )
+                    if value is not None
+                ]
+
                 (
                     record_hi,
-                    _,
+                    counting_valid_indices,
                     explanation
                 ) = handicap_calculation(
                     [
-                        x
-                        for x in effective_ratings
-                        if x is not None
+                        effective_ratings[i]
+                        for i in valid_record_indices
                     ]
                 )
+
+                recent_valid_record_indices = (
+                    valid_record_indices[-20:]
+                )
+
+                counting_record_indices = {
+                    recent_valid_record_indices[i]
+                    for i in counting_valid_indices
+                    if i < len(
+                        recent_valid_record_indices
+                    )
+                }
 
             dashboard = (
                 get_player_dashboard_stats(
@@ -5815,6 +5860,12 @@ else:
                         else "Building"
                     )
                 )
+
+                if record_hi is not None:
+
+                    st.caption(
+                        f"Currently: {explanation}"
+                    )
 
             with d2:
 
@@ -5935,9 +5986,7 @@ else:
                         "Unofficial WHS-based Handicap Index"
                     )
 
-                    st.write(
-                        f"**{explanation}**"
-                    )
+                    show_handicap_index_info()
 
                 else:
 
@@ -5948,12 +5997,14 @@ else:
 
             display_rows = []
 
-            for (
+            for record_index, (
                 round_item,
                 effective_rating
-            ) in zip(
-                player_record,
-                effective_ratings
+            ) in enumerate(
+                zip(
+                    player_record,
+                    effective_ratings
+                )
             ):
 
                 holes_value = int(
@@ -6008,6 +6059,14 @@ else:
 
                     "Round Rating":
                         effective_rating,
+
+                    "Counts":
+                        (
+                            "✓"
+                            if record_index
+                            in counting_record_indices
+                            else ""
+                        ),
 
                     "_Created At":
                         round_item.get(
@@ -6067,6 +6126,13 @@ else:
                 hide_index=True,
                 use_container_width=True
             )
+
+            if record_hi is not None:
+
+                st.caption(
+                    "✓ = Round Rating currently counting "
+                    "towards the Handicap Index."
+                )
 
             show_round_rating_info()
 
